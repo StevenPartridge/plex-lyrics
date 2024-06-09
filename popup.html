@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+      }
+      .container > * {
+        margin: 5px 0;
+      }
+      #timer {
+        font-size: 1.2em;
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="timer">Time remaining: 0s</div>
+      <label>
+        <input type="radio" name="duration" value="5"> 5 minutes
+      </label>
+      <label>
+        <input type="radio" name="duration" value="15"> 15 minutes
+      </label>
+      <label>
+        <input type="radio" name="duration" value="30"> 30 minutes
+      </label>
+      <label>
+        <input type="radio" name="duration" value="45"> 45 minutes
+      </label>
+      <label>
+        <input type="radio" name="duration" value="60"> 60 minutes
+      </label>
+      <button id="start">Start</button>
+      <button id="stop">Stop</button>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
