@@ -2,7 +2,13 @@
 
 ## Overview
 
-Plex Lyrics Auto Clicker is a Firefox extension that automatically clicks the lyrics button in the Plex Music player whenever a new song starts. It includes a user interface to start and stop the automation, and to set a timer for how long the automation should run. The extension ensures the lyrics button is only clicked if the lyrics are not already visible.
+Welcome to the Plex Lyrics Auto Clicker, your new best friend for non-stop singing sessions!
+
+We all love the Plex Music player, but having to manually open the lyrics each time a song changes can be a real buzzkill. This limitation exists due to the costs associated with fetching lyrics for every track. But don't worry, we've got you covered!
+
+With the Plex Lyrics Auto Clicker, a nifty Firefox extension, you can enjoy seamless lyrics display without lifting a finger. Whether you're belting out tunes at your desk or leading a karaoke party, this extension ensures the lyrics are always on screen for at least a few songs in a row.
+
+The extension features an intuitive interface to start and stop the automation, and you can even set a timer for how long you want the magic to last. So, get ready to sing your heart out without interruptions!
 
 ![Close up screenshot of plugin popup open](./images/closeup.png)
 
