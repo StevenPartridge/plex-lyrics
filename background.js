@@ -11,13 +11,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     interval = setInterval(() => {
       chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'clickLyricsButton'}, response => {
-          if (response && response.status === 'clicked') {
-            console.log('Button click sent successfully');
-          } else {
-            console.log('Button click not sent or not acknowledged');
-          }
-        });
+        chrome.tabs.sendMessage(tabs[0].id, {action: 'clickLyricsButton'});
       });
 
       const remainingTime = endTime - Date.now();

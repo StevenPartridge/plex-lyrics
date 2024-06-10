@@ -14,10 +14,6 @@ function isLyricsVisible() {
       lyricsButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x, clientY: y }));
       lyricsButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x, clientY: y }));
       lyricsButton.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
-  
-      console.log('Lyrics button clicked with mouse events');
-    } else {
-      console.log('Lyrics are already visible or button not found');
     }
   }
   
