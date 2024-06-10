@@ -27,6 +27,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     timer = setTimeout(() => {
       clearInterval(interval);
       chrome.runtime.sendMessage({action: 'updateTimer', remainingTime: 0});
+      chrome.storage.local.set({enabled: false});
     }, duration);
 
     chrome.storage.local.set({enabled: true, duration: request.duration, endTime});
