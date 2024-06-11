@@ -9,15 +9,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     clearInterval(interval);
     endTime = Date.now() + duration;
 
-    interval = setInterval(() => {
-      chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, {action: 'clickLyricsButton'});
+    const clickLyricsButton = () => {
+      chrome.tabs.query({url: ["*://*.plex.tv/*", "*://*/web/*"]}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, {action: 'clickLyricsButton'}, response => {
+            if (!response || response.status !== 'clicked') {
+              console.error('Failed to click the lyrics button in tab', tab.id);
+            }
+          });
+        });
       });
+    };
 
-      const remainingTime = endTime - Date.now();
-      chrome.runtime.sendMessage({action: 'updateTimer', remainingTime});
-    }, 3000); // Adjusted interval to 3 seconds
+    // Interval to repeatedly attempt to click the lyrics button
+    interval = setInterval(() => {
+      chrome.tabs.query({url: ["*://*.plex.tv/*", "*://*/web/*"]}, (tabs) => {
+        tabs.forEach(tab => {
+          clickLyricsButton();
+        });
+      });
+    }, 3000);
 
+    // Timer to stop the interval after the specified duration
     timer = setTimeout(() => {
       clearInterval(interval);
       chrome.runtime.sendMessage({action: 'updateTimer', remainingTime: 0});
