@@ -2,6 +2,8 @@
 
 ## Overview
 
+[Install for Firefox - https://addons.mozilla.org/en-US/firefox/addon/plex-lyrics-auto-clicker/](https://addons.mozilla.org/en-US/firefox/addon/plex-lyrics-auto-clicker/)
+
 Welcome to the Plex Lyrics Auto Clicker, your new best friend for non-stop singing sessions!
 
 We all love the Plex Music player, but having to manually open the lyrics each time a song changes can be a real buzzkill. This limitation exists due to the costs associated with fetching lyrics for every track. But don't worry, we've got you covered!
