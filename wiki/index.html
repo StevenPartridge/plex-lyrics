@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plex Lyrics Companion - Wiki</title>
+  <link rel="stylesheet" href="/shared/wiki.css" />
+  <link rel="stylesheet" media="print" href="/shared/print.css" />
+</head>
+<body>
+<div id="wiki-nav"></div>
+<div class="layout">
+
+  <nav class="sidebar">
+    <div>Plex Lyrics</div>
+    <div class="s-head">Sections</div>
+    <a href="#overview">Overview</a>
+    <a href="#user-flow">User Flow</a>
+    <a href="#code-map">Code Map</a>
+    <a href="#operation">Operation</a>
+    <a href="#risks">Risks</a>
+    <a href="#project-plans">Project Plans</a>
+    <a href="#resume">Resume Checklist</a>
+    <a href="#project-log">Project Log</a>
+    <div class="s-head">Wiki</div>
+    <a href="/projects/">&larr; Projects</a>
+    <a href="/">&larr; Wiki Home</a>
+  </nav>
+
+  <div class="main">
+    <div class="breadcrumb"><a href="/">Wiki</a> &rsaquo; <a href="/projects/">Projects</a> &rsaquo; Plex Lyrics Companion</div>
+
+    <div id="wiki-meta"
+      data-file-path="/projects/plex-lyrics/index.html"
+      data-fs-path="/Users/steven/dev/plex-lyrics/wiki/index.html"
+      data-tags="plex,lyrics,firefox,extension,webextension,automation"
+      data-created="2026-06-01"
+      data-updated="2026-06-06"
+      data-state="under-construction">
+    </div>
+
+    <details class="changelog">
+      <summary>Changelog</summary>
+      <ul>
+        <li><time>2026-06-06</time> - Polish Open Plex behavior and document temporary-load test results</li>
+        <li><time>2026-06-06</time> - Record Zen profile rollback after local MV3 package crashed Zen</li>
+        <li><time>2026-06-06</time> - Add Zen profile test package path and rollback note</li>
+        <li><time>2026-06-06</time> - Update current behavior after MV3 Lyrics Companion overhaul implementation</li>
+        <li><time>2026-06-06</time> - Add Lyrics Companion overhaul task plan</li>
+        <li><time>2026-06-01</time> - Initial creation and project registration</li>
+      </ul>
+    </details>
+
+    <div class="h1-row">
+      <h1>Plex Lyrics Companion</h1>
+      <span class="pill pill-teal">Firefox Add-on</span>
+      <span class="pill pill-blue">In Development</span>
+    </div>
+    <p class="sub">Small WebExtension that keeps Plex Music lyrics available while respecting manual close and showing clear session state.</p>
+
+    <hr />
+
+    <h2 id="overview">Overview</h2>
+
+    <table class="svc-table">
+      <tbody>
+        <tr><th>Status</th><td>MV3 overhaul in progress locally. Published store listing may still describe the older Auto Clicker version.</td></tr>
+        <tr><th>Install</th><td><a href="https://addons.mozilla.org/en-US/firefox/addon/plex-lyrics-auto-clicker/">Firefox Add-ons listing</a></td></tr>
+        <tr><th>Repository</th><td><code>git@github.com:StevenPartridge/plex-lyrics.git</code></td></tr>
+        <tr><th>Runtime</th><td>Manifest V3 WebExtension, plain HTML/CSS/JavaScript, cross-browser background registration</td></tr>
+        <tr><th>Extension Version</th><td><code>2.0</code> in <code>manifest.json</code></td></tr>
+        <tr><th>Permissions</th><td><code>alarms</code>, <code>storage</code>, <code>tabs</code>; host permissions for Plex Web URLs</td></tr>
+        <tr><th>Content Matches</th><td><code>*://*.plex.tv/*</code> and <code>*://*/web/*</code></td></tr>
+        <tr><th>Validation Style</th><td>Static syntax/manifest checks plus manual extension loading and Plex Web smoke testing.</td></tr>
+      </tbody>
+    </table>
+
+    <p>The extension exists to work around the friction of Plex not automatically keeping lyrics visible across track changes. The user starts a session from a Plex-native popup. The content script observes Plex Music, opens lyrics when appropriate, and pauses automation immediately when lyrics are manually closed.</p>
+
+    <div class="aside">The older screenshots in <code>images/</code> and <code>wiki/assets/</code> show the pre-overhaul timer UI and need refreshing after a live Plex smoke test.</div>
+
+    <div class="section-notes">
+      <label for="notes-overview">Notes - Overview</label>
+      <textarea id="notes-overview" placeholder="Current publication status, store review notes, or ownership changes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="user-flow">User Flow</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-title">Open the extension popup</div>
+        <p><code>popup.html</code> renders a Plex-native control center with current state, Plex tab status, lyrics status, primary action, Stop, Open/Focus Plex, Check again, and last event.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Restore saved session state</div>
+        <p><code>popup.js</code> asks the background script for the stored <code>lyricsCompanionSession</code>, then renders state-specific copy and actions.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Start a session</div>
+        <p>The popup sends <code>START_SESSION</code>. <code>background.js</code> stores a session state, updates the toolbar badge, and asks matching Plex tabs to sync.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Observe Plex</div>
+        <p><code>content.js</code> uses a MutationObserver and a slower fallback poll to watch the lyrics button and selected state.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Click lyrics when needed</div>
+        <p>When active and lyrics are hidden without a trusted manual close event, the content script dispatches a Plex-style click sequence on the lyrics button and returns explicit statuses.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Pause on manual close</div>
+        <p>Trusted user interaction with the lyrics control or likely close control followed by lyrics hiding enters <code>pausedByManualClose</code>. The badge shows <code>PAUSE</code>, and lyrics are not reopened until Resume.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-user-flow">Notes - User Flow</label>
+      <textarea id="notes-user-flow" placeholder="UX adjustments, timer changes, or Plex behavior notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="code-map">Code Map</h2>
+
+    <table class="svc-table">
+      <thead><tr><th>File</th><th>Role</th><th>Important Details</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">manifest.json</td><td>Extension manifest</td><td>Manifest V3; registers <code>action</code>, content scripts, host permissions, alarms, icons, and cross-browser background entry.</td></tr>
+        <tr><td class="svc">background.js</td><td>Session coordinator</td><td>Owns <code>lyricsCompanionSession</code>, badge state, alarms, tab targeting, popup messages, and content-script status updates.</td></tr>
+        <tr><td class="svc">content.js</td><td>Plex DOM observer</td><td>Observes Plex UI, detects manual close, opens lyrics only while active, and renders the Plex-native toast.</td></tr>
+        <tr><td class="svc">popup.html</td><td>Extension UI shell</td><td>State-based Plex-native control center with no timer controls.</td></tr>
+        <tr><td class="svc">popup.js</td><td>Popup behavior</td><td>Renders shared session state and sends Start, Pause, Resume, Stop, Open/Focus Plex, and Check again commands.</td></tr>
+        <tr><td class="svc">styles.css</td><td>Popup styling</td><td>Dark Plex-adjacent visual system with gold accent, album tile, status panel, and stable button layout.</td></tr>
+        <tr><td class="svc">icons/</td><td>Add-on icons</td><td>16, 48, and 128 pixel icons referenced by the browser action.</td></tr>
+        <tr><td class="svc">images/</td><td>README screenshots</td><td>Full-page and close-up screenshots used for project documentation.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3>Core Selector</h3>
+        <p>The integration depends on Plex exposing <code>data-testid="lyricsButton"</code> in the player UI.</p>
+      </div>
+      <div class="col-card">
+        <h3>Visible State</h3>
+        <p>Lyrics are considered open from ARIA selected/pressed attributes, <code>data-selected</code>, or the legacy Plex selected class <code>Link-isSelected-x0P_By</code>.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-code-map">Notes - Code Map</label>
+      <textarea id="notes-code-map" placeholder="Files to split, code ownership, or architecture notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="operation">Operation</h2>
+
+    <h3>Local Load</h3>
+    <ol>
+      <li>Open Firefox and navigate to <code>about:debugging</code>.</li>
+      <li>Choose <code>This Firefox</code>.</li>
+      <li>Choose <code>Load Temporary Add-on</code>.</li>
+      <li>Select this repository's <code>manifest.json</code>.</li>
+      <li>Open Plex Web, play music, start the add-on, and verify lyrics open after a track change.</li>
+    </ol>
+
+    <h3>Zen Profile Test Package</h3>
+    <p>The local MV3 package <code>build/plex-lyrics-companion-2.0.xpi</code> crashed Zen when copied directly into the active release profile. The active Zen profile has been rolled back to the signed v1.2 package at <code>/Users/steven/Library/Application Support/zen/Profiles/gqu8cria.Default (release)/extensions/{0f92fce1-8250-4a3e-bcf5-34b9318c2616}.xpi</code>, using the backup stored at <code>build/plex-lyrics-auto-clicker-zen-backup-1.2.xpi</code>.</p>
+    <p>Do not copy the MV3 package directly into the live Zen profile again until the crash is diagnosed. Temporary loading through <code>about:debugging</code> works and is the current recommended local test flow.</p>
+
+    <h3>Manual Smoke Test</h3>
+    <table class="svc-table">
+      <thead><tr><th>Check</th><th>Expected Result</th></tr></thead>
+      <tbody>
+        <tr><td>Popup opens</td><td>State, Plex tab, lyrics status, and last event render without timer controls.</td></tr>
+        <tr><td>Start with Plex open</td><td>Session state becomes <code>active</code>; badge shows <code>ON</code>; lyrics open once if hidden.</td></tr>
+        <tr><td>Manual close</td><td>Session state becomes <code>pausedByManualClose</code>; badge shows <code>PAUSE</code>; lyrics remain closed until Resume.</td></tr>
+        <tr><td>Resume</td><td>Session returns to <code>active</code> and asks Plex tabs to open lyrics if needed.</td></tr>
+        <tr><td>No Plex tab</td><td>Session enters <code>waitingForPlex</code>; badge shows <code>WAIT</code>; <code>Open Plex</code> opens Plex Web and content-ready later resumes active behavior.</td></tr>
+        <tr><td>Stop</td><td>Session becomes <code>idle</code>; badge clears; content scripts stop clicking.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-operation">Notes - Operation</label>
+      <textarea id="notes-operation" placeholder="Release process, add-on store steps, or manual QA results..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="risks">Risks</h2>
+
+    <table class="svc-table">
+      <thead><tr><th>Risk</th><th>Why It Matters</th><th>Likely Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Plex DOM drift</td><td>The selector and selected-state class are implementation details in Plex Web and may change without notice.</td><td>Smoke test against current Plex; add fallback selectors if the UI changed.</td></tr>
+        <tr><td>MV3 cross-browser behavior</td><td>Firefox uses MV3 background scripts while Chrome uses <code>service_worker</code>; both entries point at the same file.</td><td>Manual load in Firefox; optional later package validation with <code>web-ext</code> or browser-specific smoke tests.</td></tr>
+        <tr><td>Manual close detection scope</td><td>The close detection depends on trusted interactions with likely lyrics or close controls before the selected state disappears.</td><td>Smoke test live Plex; add selectors for any close affordance the observer misses.</td></tr>
+        <tr><td>Toast placement drift</td><td>Plex layout changes could make the toast feel poorly positioned.</td><td>Keep toast fixed and minimal; adjust after live player screenshots.</td></tr>
+        <tr><td>Broad content match</td><td><code>*://*/web/*</code> supports self-hosted Plex, but also matches unrelated pages with <code>/web/</code> paths.</td><td>Runtime guards check for likely Plex pages before interacting.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-risks">Notes - Risks</label>
+      <textarea id="notes-risks" placeholder="New regressions, Plex UI changes, or extension store constraints..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="project-plans">Project Plans</h2>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3><a href="/projects/plex-lyrics/task-plan-interface-overhaul.html">Lyrics Companion Overhaul</a></h3>
+        <p>Product and design task plan for replacing the timer-first popup with a state-based companion that keeps lyrics open, respects manual close, and makes paused/canceled state visible.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-project-plans">Notes - Project Plans</label>
+      <textarea id="notes-project-plans" placeholder="Future task plans, implementation notes, or design follow-ups..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="resume">Resume Checklist</h2>
+
+    <div class="steps">
+      <div class="step done">
+        <div class="step-title">Document current state</div>
+        <p>Repo behavior, files, operational flow, and risks are captured in this wiki page.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Execute Lyrics Companion overhaul</div>
+        <p>Manifest V3, session state, manual-close pause behavior, observer-first content script, toolbar badges, toast, and Plex-native popup have been implemented locally.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Run a current Plex smoke test</div>
+        <p>Load the temporary add-on, play a Plex music track, and confirm selector fallbacks, selected-state detection, manual close, badge state, toast placement, Open/Focus Plex behavior, and resume behavior.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Refresh screenshots</div>
+        <p>Replace old timer UI screenshots in <code>images/</code> and <code>wiki/assets/</code> with the Plex-native popup and, if possible, the in-Plex toast.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Package validation</div>
+        <p>Run <code>web-ext lint</code> or equivalent once tooling is available; it is not currently installed in this workspace.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Record release notes</div>
+        <p>If a new version ships, capture exact store version, manual QA notes, and any Plex UI assumptions here.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-resume">Notes - Resume Checklist</label>
+      <textarea id="notes-resume" placeholder="Next work session notes or accepted fixes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="project-log">Project Log</h2>
+
+    <table class="svc-table">
+      <thead><tr><th>Date</th><th>Change</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>2026-06-06</td><td>Temporary Zen load validated</td><td>Steven confirmed the temporary add-on works and looks good. Polish pass changed the ambiguous Find Plex control into concrete Open/Focus Plex behavior.</td></tr>
+        <tr><td>2026-06-06</td><td>Zen profile package rolled back</td><td>Directly copying the local MV3 XPI into the active Zen profile caused crashes, so the signed v1.2 XPI was restored. Next test should use temporary loading.</td></tr>
+        <tr><td>2026-06-06</td><td>Zen profile test package installed</td><td>Packaged <code>build/plex-lyrics-companion-2.0.xpi</code>, copied it over the existing Zen profile add-on id, and saved a 1.2 rollback package.</td></tr>
+        <tr><td>2026-06-06</td><td>Lyrics Companion overhaul implemented locally</td><td>MV3 manifest, session-state popup, manual-close pause behavior, observer-first content script, toolbar badges, and toast.</td></tr>
+        <tr><td>2026-06-06</td><td>Overhaul task plan created and decided</td><td>Locked Plex-native direction and state-based UX.</td></tr>
+        <tr><td>2026-06-01</td><td>Wiki entry created</td><td>Project registered in Steven's HTML wiki system.</td></tr>
+        <tr><td>2024-06-10</td><td>Published link added</td><td>README now points to the Firefox Add-ons listing.</td></tr>
+        <tr><td>2024-06-10</td><td>Version bumped to 1.2</td><td>Most recent manifest version in the repository.</td></tr>
+        <tr><td>2024-06-10</td><td>Consistency improved</td><td>Background polling behavior was improved after the initial release work.</td></tr>
+        <tr><td>2024-06-09</td><td>Permissions and icons tightened</td><td>Manifest permissions optimized; square icons added for the add-on package.</td></tr>
+        <tr><td>2024-06-09</td><td>README and screenshots updated</td><td>Usage docs and project imagery added.</td></tr>
+        <tr><td>2024-06-09</td><td>Initial implementation</td><td>Popup, background script, content script, styling, license, and README established.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-project-log">Notes - Project Log</label>
+      <textarea id="notes-project-log" placeholder="Future releases, store submissions, or notable project history..."></textarea>
+    </div>
+
+    <div id="wiki-copy-bar"></div>
+  </div>
+</div>
+
+<script src="/shared/wiki.js"></script>
+<script src="/shared/nav.js"></script>
+<script>
+  initWikiPage({
+    sectionNotes: [
+      { id: 'notes-overview', label: 'Overview' },
+      { id: 'notes-user-flow', label: 'User Flow' },
+      { id: 'notes-code-map', label: 'Code Map' },
+      { id: 'notes-operation', label: 'Operation' },
+      { id: 'notes-risks', label: 'Risks' },
+      { id: 'notes-project-plans', label: 'Project Plans' },
+      { id: 'notes-resume', label: 'Resume Checklist' },
+      { id: 'notes-project-log', label: 'Project Log' },
+    ],
+  });
+</script>
+</body>
+</html>

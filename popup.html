@@ -1,29 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
+    <title>Plex Lyrics Companion</title>
   </head>
   <body>
-    <div class="container">
-      <div id="timer" class="timer">Time remaining: 0s</div>
-      <label>
-        <input type="radio" name="duration" value="5"> 5 minutes
-      </label>
-      <label>
-        <input type="radio" name="duration" value="15"> 15 minutes
-      </label>
-      <label>
-        <input type="radio" name="duration" value="30"> 30 minutes
-      </label>
-      <label>
-        <input type="radio" name="duration" value="45"> 45 minutes
-      </label>
-      <label>
-        <input type="radio" name="duration" value="60"> 60 minutes
-      </label>
-      <button id="start" class="btn btn-start">Start</button>
-      <button id="stop" class="btn btn-stop">Stop</button>
-    </div>
+    <main class="popup-shell" data-state="idle">
+      <header class="topbar">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <div class="brand-name">Plex</div>
+          <div class="brand-subtitle">Lyrics Companion</div>
+        </div>
+        <div id="state-pill" class="state-pill">Off</div>
+      </header>
+
+      <section class="hero-panel" aria-labelledby="headline">
+        <div class="album-tile" aria-hidden="true">
+          <div class="album-glyph"></div>
+        </div>
+        <div class="hero-copy">
+          <h1 id="headline">Lyrics Companion is off</h1>
+          <p id="summary">Open Plex Music, then keep lyrics ready.</p>
+        </div>
+      </section>
+
+      <section class="status-panel" aria-label="Current status">
+        <div class="status-row">
+          <span>Plex tab</span>
+          <strong id="plex-status">Not checked</strong>
+        </div>
+        <div class="meter" aria-hidden="true">
+          <div id="meter-fill"></div>
+        </div>
+        <div class="status-row">
+          <span>Lyrics</span>
+          <strong id="lyrics-status">Idle</strong>
+        </div>
+      </section>
+
+      <section class="actions" aria-label="Controls">
+        <button id="primary-action" class="btn primary" type="button">Keep lyrics open</button>
+        <div class="secondary-actions">
+          <button id="stop-action" class="btn secondary" type="button">Stop</button>
+          <button id="check-action" class="btn secondary" type="button">Open Plex</button>
+        </div>
+      </section>
+
+      <footer class="event-line">
+        <span>Last event</span>
+        <strong id="last-event">Ready</strong>
+      </footer>
+    </main>
     <script src="popup.js"></script>
   </body>
 </html>

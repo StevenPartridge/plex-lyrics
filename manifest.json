@@ -1,15 +1,20 @@
 {
-  "manifest_version": 2,
-  "name": "Plex Lyrics Auto Clicker",
-  "version": "1.2",
+  "manifest_version": 3,
+  "name": "Plex Lyrics Companion",
+  "version": "2.0",
+  "description": "Keeps Plex Music lyrics available while respecting manual close.",
   "permissions": [
-    "activeTab",
+    "alarms",
     "storage",
     "tabs"
   ],
+  "host_permissions": [
+    "*://*.plex.tv/*",
+    "*://*/web/*"
+  ],
   "background": {
     "scripts": ["background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -20,12 +25,23 @@
       "js": ["content.js"]
     }
   ],
-  "browser_action": {
+  "action": {
+    "default_title": "Plex Lyrics Companion",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png",
       "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{0f92fce1-8250-4a3e-bcf5-34b9318c2616}"
     }
   }
 }

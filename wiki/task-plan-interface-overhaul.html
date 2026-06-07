@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lyrics Companion Overhaul - Task Plan</title>
+  <link rel="stylesheet" href="/shared/wiki.css" />
+  <link rel="stylesheet" media="print" href="/shared/print.css" />
+</head>
+<body>
+<div id="wiki-nav"></div>
+<div class="layout">
+
+  <nav class="sidebar">
+    <div>Lyrics Companion Overhaul</div>
+    <div class="s-head">Sections</div>
+    <a href="#scope">Scope</a>
+    <a href="#decisions">Key Decisions</a>
+    <a href="#steps">Step Plan</a>
+    <a href="#experience">Experience Blueprint</a>
+    <a href="#mockups">Mockups</a>
+    <a href="#state-model">State Model</a>
+    <a href="#qa">QA Plan</a>
+    <div class="s-head">Plex Lyrics</div>
+    <a href="/projects/plex-lyrics/">Project Home</a>
+    <a href="/projects/">Projects</a>
+    <a href="/">Wiki Home</a>
+  </nav>
+
+  <div class="main">
+    <div class="breadcrumb">
+      <a href="/">Wiki</a> &rsaquo; <a href="/projects/">Projects</a> &rsaquo; <a href="/projects/plex-lyrics/">Plex Lyrics Auto Clicker</a> &rsaquo; Lyrics Companion Overhaul
+    </div>
+
+    <div id="wiki-meta"
+      data-file-path="/projects/plex-lyrics/task-plan-interface-overhaul.html"
+      data-fs-path="/Users/steven/dev/plex-lyrics/wiki/task-plan-interface-overhaul.html"
+      data-tags="plex,lyrics,task-plan,ux,product,extension,automation"
+      data-created="2026-06-06"
+      data-updated="2026-06-06"
+      data-state="under-construction">
+    </div>
+
+    <details class="changelog">
+      <summary>Changelog</summary>
+      <ul>
+        <li><time>2026-06-06</time> - Polish temporary-load feedback: replace Find Plex with Open/Focus Plex behavior and keep Phase 9 smoke testing open</li>
+        <li><time>2026-06-06</time> - Implement MV3 session-state overhaul through Phase 8; leave final live smoke testing open</li>
+        <li><time>2026-06-06</time> - Lock Q5 to Plex-native integration</li>
+        <li><time>2026-06-06</time> - Add design-direction gate and replace basic sketches with more ambitious mockups</li>
+        <li><time>2026-06-06</time> - Add example UI mockups for early design feedback</li>
+        <li><time>2026-06-06</time> - Lock Q1-Q4 decisions from wiki feedback and add MV3 migration phase</li>
+        <li><time>2026-06-06</time> - Initial creation from product/design overhaul request</li>
+      </ul>
+    </details>
+
+    <div class="h1-row">
+      <h1>Lyrics Companion Overhaul</h1>
+      <span class="pill pill-blue">Planning</span>
+      <span class="pill pill-teal">UX First</span>
+    </div>
+    <p class="sub">Task plan for transforming the extension from a timer-driven auto-clicker into a trustworthy lyrics companion for side-screen Plex music listening.</p>
+
+    <hr />
+
+    <h2 id="scope">Scope</h2>
+    <p>The outcome stays the same: a Plex listener can keep music lyrics visible with almost no effort. Everything else is negotiable - timer, layout, controls, wording, and implementation model.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Area</th><th>Current App</th><th>Target Experience</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Product job</td>
+          <td>Repeatedly click the Plex lyrics button for a selected duration.</td>
+          <td>Keep lyrics available while respecting user intent, especially when the user manually closes lyrics.</td>
+        </tr>
+        <tr>
+          <td class="svc">Mental model</td>
+          <td>A timer is running in the background.</td>
+          <td>A companion is either <strong>keeping lyrics open</strong>, <strong>paused by you</strong>, or <strong>off</strong>.</td>
+        </tr>
+        <tr>
+          <td class="svc">Primary control</td>
+          <td>Start and Stop buttons with duration radio choices.</td>
+          <td>A clear session toggle plus one-click Resume, Pause, and Stop actions based on current state.</td>
+        </tr>
+        <tr>
+          <td class="svc">Manual close behavior</td>
+          <td>The interval can reopen lyrics shortly after the user closes them.</td>
+          <td>Manual close immediately pauses/cancels automation and shows visible confirmation in the page, popup, and toolbar badge.</td>
+        </tr>
+        <tr>
+          <td class="svc">Status visibility</td>
+          <td>Status mostly exists inside the popup, and the popup is usually closed.</td>
+          <td>The toolbar badge and optional in-Plex toast make the state visible without hunting through the extension UI.</td>
+        </tr>
+        <tr>
+          <td class="svc">Timer role</td>
+          <td>Timer is the main product surface.</td>
+          <td>Timer becomes optional guardrail copy, not the core interaction. The product centers on user intent and session state.</td>
+        </tr>
+        <tr>
+          <td class="svc">Extension platform</td>
+          <td>Firefox Manifest V2 with an event background script and timer-based interval behavior.</td>
+          <td>Manifest V3 with cross-browser background registration, storage-backed state, alarms or rehydration where needed, and observer-first content behavior.</td>
+        </tr>
+        <tr>
+          <td class="svc">Non-goals</td>
+          <td colspan="2">Do not build a general Plex skin, lyric source scraper, account system, or landing page. This stays a small focused WebExtension.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="tip"><strong>North star:</strong> the extension should feel like it is on the listener's side. If they close lyrics, it should treat that as a command, not a problem to undo three seconds later.</div>
+
+    <h3>Product Principles</h3>
+    <table class="svc-table">
+      <thead><tr><th>Principle</th><th>Design Consequence</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">Trust user intent</td><td>Manual close always wins. No automatic reopen until the user explicitly resumes.</td></tr>
+        <tr><td class="svc">Make state obvious</td><td>Use concise status language: <code>Keeping lyrics open</code>, <code>Paused by you</code>, <code>Off</code>, <code>Waiting for Plex</code>.</td></tr>
+        <tr><td class="svc">Reduce decisions</td><td>Default to a session-based mode. Move durations into an optional secondary control if they survive testing.</td></tr>
+        <tr><td class="svc">Stay out of the music</td><td>In-Plex UI should be small, calm, and temporary unless the user chooses a persistent indicator.</td></tr>
+        <tr><td class="svc">Recover quickly</td><td>Every paused/error state gets one obvious action: <code>Resume lyrics</code>, <code>Open Plex</code>, or <code>Try again</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-scope">Notes - Scope</label>
+      <textarea id="notes-scope" placeholder="Scope additions, product principles, or behavior that must not change..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="decisions">Key Decisions</h2>
+    <p>Decisions Q1-Q5 were locked on 2026-06-06 from wiki feedback. The visual direction is Plex-native integration: the final UI should feel like a missing Plex Music feature, not a generic browser-extension panel.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Decision</th><th>Choice</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Manual close</td>
+          <td><span class="pill pill-green">Pause/cancel automation</span></td>
+          <td>Closing lyrics by hand enters <code>pausedByManualClose</code>; automation does not reopen lyrics until Resume.</td>
+        </tr>
+        <tr>
+          <td class="svc">Visual confirmation</td>
+          <td><span class="pill pill-green">Visible outside popup</span></td>
+          <td>Use browser action badge and a short in-Plex confirmation so the cancellation is not hidden.</td>
+        </tr>
+        <tr>
+          <td class="svc">Timer prominence</td>
+          <td><span class="pill pill-green">Demote timer</span></td>
+          <td>The core UI is state-based. Time limits can remain as an advanced session option if useful.</td>
+        </tr>
+        <tr>
+          <td class="svc">Interface direction</td>
+          <td><span class="pill pill-green">Control center</span></td>
+          <td>The popup becomes a compact status-and-action surface, not a form full of duration choices.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q1 - Session boundary</td>
+          <td><span class="pill pill-green">A - Until stopped or Plex closes</span></td>
+          <td>Default action is <code>Keep lyrics open</code>. No timer-first UI; optional limits can be revisited later.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q2 - Status surface</td>
+          <td><span class="pill pill-green">A - Toast plus toolbar badge</span></td>
+          <td>Manual close and other important events get a temporary in-Plex toast plus persistent browser action badge state.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q3 - Extension platform</td>
+          <td><span class="pill pill-green">B - Migrate to MV3 now</span></td>
+          <td>The overhaul includes manifest, background lifecycle, alarm/storage, and MV3-safe messaging changes. Firefox uses MV3 background scripts; browsers that support service workers use the same file as a service worker.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q4 - Opening trigger</td>
+          <td><span class="pill pill-green">A - Observer first, fallback poll</span></td>
+          <td>Content script observes Plex/lyrics state first, then uses a slower guarded fallback poll only when observation misses.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q5 - Visual ambition</td>
+          <td><span class="pill pill-green">A - Plex-native integration</span></td>
+          <td>Popup, toast, and badge design should follow Plex's dark, compact, gold-accented design language closely enough to feel native.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q1</div>
+        <div class="q-title">What should the default session boundary be?</div>
+      </div>
+      <p>This determines the primary label in the redesigned popup and how much timer UI survives. It blocks the session-state implementation and final popup layout.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-session-boundary" value="until-stopped" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Until stopped or Plex closes</div>
+            <p>Default to <code>Keep lyrics open</code>. The session runs until the user stops, manually closes lyrics, closes Plex, or disables the extension. Best match for side-screen listening.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-session-boundary" value="timed-guardrail">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Session with optional time limit</div>
+            <p>Keep the state-based UX, but offer a secondary <code>Stop after...</code> menu for people who want a safety limit. More UI, but preserves the old timer benefit.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-session-boundary-notes">Notes</label>
+        <input type="text" id="q-session-boundary-notes" placeholder="Locked: A - Until stopped or Plex closes">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q2</div>
+        <div class="q-title">How visible should the in-Plex status be?</div>
+      </div>
+      <p>This blocks the content-script UI. The product needs visible confirmation, but Plex should still feel like Plex.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-status-surface" value="toast-badge" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Toast plus toolbar badge</div>
+            <p>Show a small temporary toast after important events, while the browser action badge carries persistent state. Best balance of clarity and quietness.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-status-surface" value="persistent-chip">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Persistent in-Plex chip</div>
+            <p>Add a tiny status chip near the player or lyrics area. Always visible, but higher chance of feeling like UI clutter or breaking when Plex layout changes.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-status-surface" value="popup-only">
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Popup only</div>
+            <p>Simplest implementation, but weak for the exact friction case: the user may not know automation was canceled unless they open the popup.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-status-surface-notes">Notes</label>
+        <input type="text" id="q-status-surface-notes" placeholder="Locked: A - Toast plus toolbar badge">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q3</div>
+        <div class="q-title">Should this overhaul include a Manifest V3 migration?</div>
+      </div>
+      <p>The UI/state work can ship on Firefox Manifest V2. Manifest V3 may be worth doing eventually, but it changes background lifetime assumptions and broadens the project.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-manifest" value="mv2-first">
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Ship UX overhaul on MV2 first</div>
+            <p>Keep the release surface small: fix trust, state, and UI first. Revisit MV3 as a follow-up once the product behavior is right.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-manifest" value="mv3-now" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Migrate to MV3 now</div>
+            <p>Modernize the extension platform during the redesign. Cleaner long-term direction, but adds MV3 background lifecycle, alarm/storage, and cross-browser registration complexity.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-manifest-notes">Notes</label>
+        <input type="text" id="q-manifest-notes" placeholder="Locked: B - Migrate to MV3 now">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q4</div>
+        <div class="q-title">How should the extension decide when to open lyrics?</div>
+      </div>
+      <p>The current three-second interval is easy to reason about but creates surprise. This decision blocks the content/background refactor.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-triggering" value="observer-fallback" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Observer first, fallback poll</div>
+            <p>Use content-script observation for lyrics button state and likely track changes, then keep a slower guarded poll as a backup. Best path for fewer stray clicks.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-triggering" value="guarded-interval">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Guarded interval only</div>
+            <p>Keep an interval, but make it state-aware: no clicks while paused, no duplicate tab queries, explicit statuses, and backoff when Plex is unavailable.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-triggering-notes">Notes</label>
+        <input type="text" id="q-triggering-notes" placeholder="Locked: A - Observer first, fallback poll">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q5</div>
+        <div class="q-title">What visual direction should the overhaul pursue?</div>
+      </div>
+      <p>This blocks popup, toast, badge, and screenshot implementation. The current mockups were too generic; the final direction should either merge into Plex's design language or make a deliberate, high-polish companion statement.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-visual-direction" value="plex-native" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Plex-native integration</div>
+            <p>Make the popup and in-page toast feel like Plex could have shipped them: dark layered surfaces, Plex gold as the only strong accent, dense but calm spacing, minimal decoration, and copy that reads like player status.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-visual-direction" value="expressive-companion">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Expressive companion</div>
+            <p>Push the popup harder with album-art ambience, lyric-line rhythm, motion-ready panels, and a more distinctive identity. In-Plex surfaces still stay restrained so the player is not visually hijacked.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-visual-direction" value="hybrid">
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Native in Plex, expressive in popup</div>
+            <p>Toast and badge blend into Plex, while the extension popup gets a richer companion surface. Best if the toolbar popup is the main place for delight but Plex itself should remain untouched.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-visual-direction-notes">Notes</label>
+        <input type="text" id="q-visual-direction-notes" placeholder="Locked: A - Plex-native integration">
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-decisions">Notes - Key Decisions</label>
+      <textarea id="notes-decisions" placeholder="Lock Q-card answers here before implementation starts..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="steps">Step Plan</h2>
+    <p>Implementation should be product-led: first make the state machine impossible to misunderstand, build the MV3 foundation around that state, then lock the visual direction before any interface build-out.</p>
+
+    <div class="steps">
+      <div class="step done">
+        <div class="step-title">Phase 1 - Define the event/state contract</div>
+        <p>Write the durable states and events before UI work: <code>idle</code>, <code>active</code>, <code>pausedByManualClose</code>, <code>pausedByUser</code>, <code>waitingForPlex</code>, and <code>lyricsUnavailable</code>. Events include <code>start</code>, <code>stop</code>, <code>resume</code>, <code>manualCloseDetected</code>, <code>lyricsOpened</code>, <code>lyricsMissing</code>, and <code>plexUnavailable</code>.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Phase 2 - Migrate the extension foundation to MV3</div>
+        <p>Update <code>manifest.json</code> to Manifest V3, move <code>browser_action</code> to <code>action</code>, split host permissions from extension permissions, and register the background file for both Firefox MV3 background scripts and service-worker browsers. Rebuild runtime assumptions around storage, messages, and alarms instead of long-lived <code>setInterval</code> and <code>setTimeout</code>.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Phase 3 - Build manual-close detection and stop the surprise loop</div>
+        <p>Teach <code>content.js</code> to report visible-state transitions. Synthetic clicks set a short suppression window; a user-driven transition from visible to hidden enters <code>pausedByManualClose</code>. Background clears automation immediately and stores the paused reason.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Phase 4 - Replace timer-first storage with MV3-safe session state</div>
+        <p>Replace <code>enabled</code>, <code>duration</code>, and <code>endTime</code> as the primary model with a single stored session object: state, reason, active tab IDs, last event, last synthetic click time, and MV3 background rehydration metadata. With Q1 locked to until-stopped, omit timer controls from the first redesigned surface.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Phase 5 - Lock visual direction with reviewed mockups</div>
+        <p>Q5 is locked to Plex-native integration. Use the Plex-native mockups as the source of truth, then produce enough final visual detail to prevent the implementation from drifting into generic extension UI: active popup, paused popup, in-Plex toast, toolbar badge states, and at least one narrow/mobile popup crop.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Phase 6 - Redesign popup as a polished control center</div>
+        <p>Build the popup around state: headline, one-sentence explanation, primary action, secondary action, current Plex detection, and last event. Remove the stacked radio list and timer display from the default surface. The visual system must follow Q5, not generic browser-extension defaults.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Phase 7 - Add toast and toolbar badge status</div>
+        <p>Use the browser action badge for persistent state and the chosen in-Plex surface from Q2 for important moments. Manual close shows concise copy like <code>Lyrics paused</code>, then leaves the badge in a paused state.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Phase 8 - Make opening smarter and quieter</div>
+        <p>Implement the Q4 trigger strategy: observe Plex/lyrics DOM changes in the content script, click only in <code>active</code>, return explicit content statuses, and keep a slower guarded fallback poll for missed transitions or background wakeups.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 9 - Polish, test, and ship</div>
+        <p>Run manual extension smoke tests across active, paused, stopped, no-Plex, multiple-tabs, track-change, unavailable-lyrics, popup-reopen, browser-restart, and MV3 background wakeup cases. Update screenshots and release notes only after behavior feels calm under repeated use.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-steps">Notes - Step Plan</label>
+      <textarea id="notes-steps" placeholder="Implementation sequencing, dependencies, or phase gates..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="experience">Experience Blueprint</h2>
+    <p>The redesign should feel modern and fun without becoming noisy. The popup is a tool surface, not marketing. It should be dense enough for repeated use and warm enough that status changes feel human.</p>
+
+    <h3>Popup Structure</h3>
+    <table class="svc-table">
+      <thead><tr><th>Region</th><th>Content</th><th>Design Intent</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">State header</td>
+          <td><code>Keeping lyrics open</code>, <code>Paused by you</code>, <code>Lyrics unavailable</code>, or <code>Waiting for Plex</code>.</td>
+          <td>One glance should answer whether the extension is doing anything.</td>
+        </tr>
+        <tr>
+          <td class="svc">Primary action</td>
+          <td><code>Keep lyrics open</code>, <code>Resume lyrics</code>, or <code>Open Plex</code>, depending on state.</td>
+          <td>One obvious next action; no Start/Stop ambiguity.</td>
+        </tr>
+        <tr>
+          <td class="svc">Session controls</td>
+          <td>Small secondary controls: Pause, Stop, optional <code>Stop after...</code>.</td>
+          <td>Power without clutter. Durations are not the page's personality anymore.</td>
+        </tr>
+        <tr>
+          <td class="svc">Plex detection</td>
+          <td>Current tab status, lyrics visibility, and whether the button was found.</td>
+          <td>When something does not work, the popup should explain why without logs.</td>
+        </tr>
+        <tr>
+          <td class="svc">Last event</td>
+          <td><code>Lyrics paused at 8:42 PM</code> or <code>Opened lyrics for the new track</code>.</td>
+          <td>Creates confidence that the extension understood the user's action.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Status Copy</h3>
+    <table class="svc-table">
+      <thead><tr><th>State</th><th>Popup Headline</th><th>Badge</th><th>Primary Action</th></tr></thead>
+      <tbody>
+        <tr><td class="svc"><code>idle</code></td><td>Lyrics Companion is off</td><td>Off</td><td>Keep lyrics open</td></tr>
+        <tr><td class="svc"><code>active</code></td><td>Keeping lyrics open</td><td>On</td><td>Pause</td></tr>
+        <tr><td class="svc"><code>pausedByManualClose</code></td><td>Lyrics paused</td><td>Pause</td><td>Resume lyrics</td></tr>
+        <tr><td class="svc"><code>pausedByUser</code></td><td>Paused</td><td>Pause</td><td>Resume lyrics</td></tr>
+        <tr><td class="svc"><code>waitingForPlex</code></td><td>Open Plex Music to start</td><td>Wait</td><td>Open Plex</td></tr>
+        <tr><td class="svc"><code>lyricsUnavailable</code></td><td>No lyrics for this track</td><td>On</td><td>Keep watching</td></tr>
+      </tbody>
+    </table>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3>Visual Tone</h3>
+        <p>Use a dark, Plex-adjacent interface with one lively accent, crisp status pills, and button labels that name real actions. Avoid a giant hero, decorative cards, or a timer-dominated dashboard.</p>
+      </div>
+      <div class="col-card">
+        <h3>Manual Close Moment</h3>
+        <p>When the user closes lyrics, show a temporary in-Plex confirmation and switch the badge to paused. The next popup open should lead with the same reason, not a generic stopped state.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-experience">Notes - Experience Blueprint</label>
+      <textarea id="notes-experience" placeholder="Copy tweaks, layout sketches, or status language changes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="mockups">Mockups</h2>
+    <p>These are direction-setting mockups, not final pixels. Q5 is locked to Plex-native integration, so Direction A is the implementation target. Generic extension UI is not an acceptable target for this overhaul.</p>
+
+    <div class="tip"><strong>Planning rule for UX-heavy task plans:</strong> include rough mockups or state sketches before building the interface. If a task plan proposes a new user experience, the user should be able to react to the shape, hierarchy, and copy before code cycles start.</div>
+
+    <table class="svc-table">
+      <thead><tr><th>Direction</th><th>What It Optimizes For</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Plex-native</td>
+          <td><span class="pill pill-green">Selected</span> - Feels like a missing Plex music feature: dark chrome, gold accent, compact player language, minimal extension personality.</td>
+          <td>Needs enough contrast in the paused/canceled state that user intent is unmistakable.</td>
+        </tr>
+        <tr>
+          <td class="svc">Expressive companion</td>
+          <td><span class="pill pill-dim">Reference only</span> - Turns the toolbar popup into a more delightful side-screen control with album-art ambience and lyric-forward composition.</td>
+          <td>Not the chosen direction; useful only as a reminder not to under-design the selected native path.</td>
+        </tr>
+        <tr>
+          <td class="svc">Hybrid</td>
+          <td><span class="pill pill-dim">Rejected for now</span> - Native inside Plex, richer in the popup.</td>
+          <td>Too likely to make the extension feel split-brained for the first overhaul pass.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3>Direction A - Plex-Native Popup</h3>
+        <svg viewBox="0 0 390 500" role="img" aria-label="Plex-native active popup mockup" style="width:100%;height:auto;border-radius:8px;background:#0b0d10">
+          <defs>
+            <linearGradient id="plexPanel" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#1d2229" />
+              <stop offset="1" stop-color="#0f1217" />
+            </linearGradient>
+            <linearGradient id="plexCover" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#4b3515" />
+              <stop offset="0.48" stop-color="#191e27" />
+              <stop offset="1" stop-color="#0d1015" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="390" height="500" rx="16" fill="#0b0d10" />
+          <rect x="18" y="18" width="354" height="464" rx="14" fill="url(#plexPanel)" stroke="#2a3038" />
+          <rect x="36" y="36" width="318" height="36" rx="6" fill="#11151b" />
+          <text x="52" y="60" fill="#e5a00d" font-size="16" font-family="Arial, sans-serif" font-weight="800">PLEX</text>
+          <text x="100" y="60" fill="#aab2bf" font-size="12" font-family="Arial, sans-serif" font-weight="700">Lyrics Companion</text>
+          <rect x="282" y="43" width="54" height="22" rx="11" fill="#223326" stroke="#557d42" />
+          <text x="300" y="58" fill="#b5e980" font-size="10" font-family="Arial, sans-serif" font-weight="800">ON</text>
+          <rect x="36" y="94" width="88" height="88" rx="7" fill="url(#plexCover)" />
+          <path d="M52 158 L78 116 L105 158 Z" fill="#e5a00d" opacity="0.75" />
+          <text x="140" y="113" fill="#f6f7fa" font-size="23" font-family="Arial, sans-serif" font-weight="800">Keeping lyrics</text>
+          <text x="140" y="140" fill="#f6f7fa" font-size="23" font-family="Arial, sans-serif" font-weight="800">open</text>
+          <text x="140" y="166" fill="#9ca6b5" font-size="12" font-family="Arial, sans-serif">Plex Music is being watched.</text>
+          <rect x="36" y="208" width="318" height="78" rx="9" fill="#0f1319" stroke="#2c333d" />
+          <text x="56" y="235" fill="#737f8f" font-size="11" font-family="Arial, sans-serif" font-weight="700">NOW PLAYING</text>
+          <text x="56" y="259" fill="#f0f2f5" font-size="16" font-family="Arial, sans-serif" font-weight="700">Lyrics visible on this track</text>
+          <rect x="56" y="270" width="256" height="4" rx="2" fill="#333b47" />
+          <rect x="56" y="270" width="142" height="4" rx="2" fill="#e5a00d" />
+          <rect x="36" y="308" width="318" height="54" rx="7" fill="#e5a00d" />
+          <text x="168" y="342" fill="#101318" font-size="17" font-family="Arial, sans-serif" font-weight="800">Pause</text>
+          <rect x="36" y="376" width="151" height="44" rx="7" fill="#171c23" stroke="#343b46" />
+          <text x="94" y="404" fill="#e7ebf1" font-size="13" font-family="Arial, sans-serif" font-weight="800">Stop</text>
+          <rect x="203" y="376" width="151" height="44" rx="7" fill="#171c23" stroke="#343b46" />
+          <text x="242" y="404" fill="#e7ebf1" font-size="13" font-family="Arial, sans-serif" font-weight="800">Open Plex</text>
+          <text x="36" y="454" fill="#747f8d" font-size="11" font-family="Arial, sans-serif">Last event: opened lyrics for the current track</text>
+        </svg>
+      </div>
+      <div class="col-card">
+        <h3>Reference Only - Expressive Companion Popup</h3>
+        <svg viewBox="0 0 390 500" role="img" aria-label="Expressive companion popup mockup" style="width:100%;height:auto;border-radius:8px;background:#090b0f">
+          <defs>
+            <linearGradient id="companionBg" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#2d2212" />
+              <stop offset="0.42" stop-color="#111827" />
+              <stop offset="1" stop-color="#080a0d" />
+            </linearGradient>
+            <linearGradient id="goldButton" x1="0" x2="1">
+              <stop offset="0" stop-color="#f2b21a" />
+              <stop offset="1" stop-color="#d88a05" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="390" height="500" rx="16" fill="url(#companionBg)" />
+          <rect x="20" y="20" width="350" height="460" rx="18" fill="#0e1218" opacity="0.92" stroke="#332a1b" />
+          <rect x="42" y="40" width="78" height="78" rx="16" fill="#271a0d" stroke="#e5a00d" />
+          <path d="M58 92 C70 70 82 68 104 52" stroke="#e5a00d" stroke-width="5" fill="none" stroke-linecap="round" />
+          <text x="140" y="63" fill="#f7f2e8" font-size="14" font-family="Arial, sans-serif" font-weight="800">SIDE-SCREEN MODE</text>
+          <text x="140" y="90" fill="#ffffff" font-size="23" font-family="Arial, sans-serif" font-weight="800">Lyrics are ready</text>
+          <text x="140" y="112" fill="#b8c0ce" font-size="12" font-family="Arial, sans-serif">Quietly following the music.</text>
+          <rect x="42" y="148" width="306" height="108" rx="14" fill="#141923" stroke="#30394a" />
+          <text x="64" y="178" fill="#e5a00d" font-size="12" font-family="Arial, sans-serif" font-weight="800">CURRENT LINE</text>
+          <text x="64" y="207" fill="#ffffff" font-size="21" font-family="Arial, sans-serif" font-weight="800">Stay with the song</text>
+          <text x="64" y="231" fill="#96a1b2" font-size="13" font-family="Arial, sans-serif">No reopening if you close lyrics.</text>
+          <rect x="42" y="282" width="306" height="56" rx="12" fill="url(#goldButton)" />
+          <text x="135" y="317" fill="#0b0d10" font-size="17" font-family="Arial, sans-serif" font-weight="900">Keep lyrics open</text>
+          <rect x="42" y="354" width="146" height="46" rx="12" fill="#171d27" stroke="#384254" />
+          <text x="94" y="383" fill="#f4f6fb" font-size="13" font-family="Arial, sans-serif" font-weight="800">Pause</text>
+          <rect x="202" y="354" width="146" height="46" rx="12" fill="#171d27" stroke="#384254" />
+          <text x="257" y="383" fill="#f4f6fb" font-size="13" font-family="Arial, sans-serif" font-weight="800">Stop</text>
+          <path d="M56 434 C92 412 116 452 151 426 C185 401 215 451 251 422 C285 396 315 428 344 410" stroke="#e5a00d" stroke-width="3" fill="none" opacity="0.9" />
+          <text x="42" y="462" fill="#7d8797" font-size="11" font-family="Arial, sans-serif">More distinctive, but still anchored to Plex gold and music context.</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3>Plex-Native Toast - Manual Close</h3>
+        <svg viewBox="0 0 560 320" role="img" aria-label="Plex-native toast mockup inside Plex" style="width:100%;height:auto;border-radius:8px;background:#080a0d">
+          <rect x="0" y="0" width="560" height="320" rx="12" fill="#080a0d" />
+          <rect x="28" y="24" width="504" height="64" rx="8" fill="#11151a" />
+          <text x="48" y="63" fill="#e5a00d" font-size="20" font-family="Arial, sans-serif" font-weight="900">PLEX</text>
+          <text x="120" y="62" fill="#808a98" font-size="13" font-family="Arial, sans-serif" font-weight="700">Music</text>
+          <rect x="28" y="108" width="504" height="142" rx="10" fill="#151a21" stroke="#252c36" />
+          <rect x="52" y="132" width="94" height="94" rx="7" fill="#2a303b" />
+          <text x="170" y="153" fill="#f4f6fb" font-size="18" font-family="Arial, sans-serif" font-weight="800">Song title</text>
+          <text x="170" y="179" fill="#8c96a6" font-size="13" font-family="Arial, sans-serif">Artist name</text>
+          <rect x="170" y="209" width="290" height="5" rx="3" fill="#363f4d" />
+          <rect x="170" y="209" width="150" height="5" rx="3" fill="#e5a00d" />
+          <rect x="186" y="236" width="250" height="54" rx="7" fill="#0f1319" stroke="#3e3219" />
+          <rect x="186" y="236" width="5" height="54" rx="3" fill="#e5a00d" />
+          <text x="206" y="260" fill="#f4f6fb" font-size="14" font-family="Arial, sans-serif" font-weight="800">Lyrics paused</text>
+          <text x="206" y="279" fill="#9ba5b4" font-size="12" font-family="Arial, sans-serif">Resume from the extension when ready.</text>
+          <text x="28" y="303" fill="#778190" font-size="11" font-family="Arial, sans-serif">Goal: this should read like a Plex player status toast, not a foreign widget.</text>
+        </svg>
+      </div>
+      <div class="col-card">
+        <h3>Badge Language - Persistent State</h3>
+        <svg viewBox="0 0 560 320" role="img" aria-label="Toolbar badge state mockup" style="width:100%;height:auto;border-radius:8px;background:#f3f4f7">
+          <rect x="0" y="0" width="560" height="320" rx="12" fill="#f3f4f7" />
+          <rect x="34" y="34" width="492" height="58" rx="12" fill="#ffffff" stroke="#cbd1db" />
+          <text x="58" y="69" fill="#20242b" font-size="15" font-family="Arial, sans-serif" font-weight="800">Browser chrome</text>
+          <rect x="382" y="47" width="34" height="34" rx="8" fill="#11151a" />
+          <path d="M395 69 L402 56 L409 69 Z" fill="#e5a00d" />
+          <rect x="410" y="39" width="40" height="20" rx="10" fill="#146b3b" />
+          <text x="420" y="54" fill="#ffffff" font-size="10" font-family="Arial, sans-serif" font-weight="900">ON</text>
+          <rect x="90" y="130" width="380" height="52" rx="12" fill="#ffffff" stroke="#d8dde6" />
+          <rect x="110" y="143" width="34" height="26" rx="7" fill="#146b3b" />
+          <text x="116" y="161" fill="#ffffff" font-size="10" font-family="Arial, sans-serif" font-weight="900">ON</text>
+          <text x="162" y="161" fill="#20242b" font-size="14" font-family="Arial, sans-serif" font-weight="800">Keeping lyrics open</text>
+          <rect x="90" y="196" width="380" height="52" rx="12" fill="#ffffff" stroke="#d8dde6" />
+          <rect x="110" y="209" width="54" height="26" rx="7" fill="#936715" />
+          <text x="117" y="227" fill="#ffffff" font-size="10" font-family="Arial, sans-serif" font-weight="900">PAUSE</text>
+          <text x="184" y="227" fill="#20242b" font-size="14" font-family="Arial, sans-serif" font-weight="800">Lyrics paused</text>
+          <rect x="90" y="262" width="380" height="36" rx="10" fill="#e9edf3" />
+          <text x="112" y="285" fill="#596474" font-size="12" font-family="Arial, sans-serif">Off clears the badge; Wait appears only when Plex is not ready.</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="note"><strong>Design feedback checkpoint:</strong> Q5 is answered: build Plex-native. Before Phase 6, do one more polish pass only if the Plex-native mockup still feels too generic to implement confidently.</div>
+
+    <div class="section-notes">
+      <label for="notes-mockups">Notes - Mockups</label>
+      <textarea id="notes-mockups" placeholder="Preferred visual direction, copy changes, missing states, or mockups to add..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="state-model">State Model</h2>
+    <p>The product gets reliable only when the background script owns a real state machine and every surface renders from it. Popup, badge, and content script should not each invent their own truth.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>State</th><th>Enter When</th><th>Automation Behavior</th><th>Exit</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc"><code>idle</code></td>
+          <td>User has not started, stopped explicitly, or session ended.</td>
+          <td>No clicking. Badge says Off or clears.</td>
+          <td>Start from popup.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>active</code></td>
+          <td>User chooses <code>Keep lyrics open</code> or resumes after a pause.</td>
+          <td>Open lyrics when Plex has a lyrics button and lyrics are not visible.</td>
+          <td>Manual close, Pause, Stop, Plex unavailable, or optional time limit.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>pausedByManualClose</code></td>
+          <td>Lyrics were visible and become hidden from a user action, not an extension click.</td>
+          <td>No clicking. Badge says Pause. Popup leads with the reason.</td>
+          <td>Resume or Stop.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>pausedByUser</code></td>
+          <td>User pauses from popup or badge action.</td>
+          <td>No clicking. Preserve context.</td>
+          <td>Resume or Stop.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>waitingForPlex</code></td>
+          <td>No matching Plex tab, Plex tab not ready, or button not found yet.</td>
+          <td>Do not spam clicks. Watch or poll slowly.</td>
+          <td>Plex detected or Stop.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>lyricsUnavailable</code></td>
+          <td>Plex indicates no lyrics button or no lyrics for the current track.</td>
+          <td>Stay active but quiet. Recheck on track change.</td>
+          <td>Track change, Stop, or manual pause.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">Implementation detail: content responses should become explicit statuses such as <code>clicked</code>, <code>already-visible</code>, <code>manual-close-detected</code>, <code>button-missing</code>, and <code>lyrics-unavailable</code>. The current unconditional <code>clicked</code> response hides useful product state.</div>
+
+    <div class="section-notes">
+      <label for="notes-state-model">Notes - State Model</label>
+      <textarea id="notes-state-model" placeholder="State names, event payloads, or transition concerns..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="qa">QA Plan</h2>
+    <p>This is a trust feature, so QA should focus on repeated real-world sequences rather than only happy-path clicks.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Scenario</th><th>Expected Result</th></tr></thead>
+      <tbody>
+        <tr><td>Start while Plex Music is open and lyrics are hidden</td><td>Lyrics open once; popup says <code>Keeping lyrics open</code>; badge says On.</td></tr>
+        <tr><td>Manually close lyrics while active</td><td>Automation stops immediately; lyrics do not reopen; toast and badge show paused; popup says <code>Lyrics paused</code>.</td></tr>
+        <tr><td>Reopen popup after manual close</td><td>Popup still shows the paused reason and offers <code>Resume lyrics</code>.</td></tr>
+        <tr><td>Resume after manual close</td><td>Lyrics open again and session returns to active.</td></tr>
+        <tr><td>Track changes while active</td><td>Lyrics open for the new track without repeated clicks.</td></tr>
+        <tr><td>Track changes while paused by manual close</td><td>Lyrics remain closed until Resume.</td></tr>
+        <tr><td>No lyrics available for a track</td><td>No error loop; popup explains the track has no lyrics or the button is unavailable.</td></tr>
+        <tr><td>Multiple Plex tabs</td><td>Either target the active audible Plex tab or clearly list multi-tab behavior in the popup.</td></tr>
+        <tr><td>Browser restart or extension reload</td><td>Stored state restores honestly; no surprise auto-click unless a previous active session is intentionally resumed.</td></tr>
+        <tr><td>MV3 background wakes after being suspended</td><td>Session state rehydrates from storage, badge state is restored, and observer/fallback behavior resumes without duplicate clicks.</td></tr>
+        <tr><td>Extension reload during paused manual-close state</td><td>Paused reason remains visible after reload; lyrics do not reopen until Resume.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-qa">Notes - QA Plan</label>
+      <textarea id="notes-qa" placeholder="Manual smoke results, test devices, or Plex UI drift notes..."></textarea>
+    </div>
+
+    <div id="wiki-copy-bar"></div>
+  </div>
+</div>
+
+<script src="/shared/wiki.js"></script>
+<script src="/shared/nav.js"></script>
+<script>
+  initWikiPage({
+    qLabels: {
+      'q-session-boundary': {
+        'until-stopped': 'A - Until stopped or Plex closes',
+        'timed-guardrail': 'B - Session with optional time limit',
+      },
+      'q-status-surface': {
+        'toast-badge': 'A - Toast plus toolbar badge',
+        'persistent-chip': 'B - Persistent in-Plex chip',
+        'popup-only': 'C - Popup only',
+      },
+      'q-manifest': {
+        'mv2-first': 'A - Ship UX overhaul on MV2 first',
+        'mv3-now': 'B - Migrate to MV3 now',
+      },
+      'q-triggering': {
+        'observer-fallback': 'A - Observer first, fallback poll',
+        'guarded-interval': 'B - Guarded interval only',
+      },
+      'q-visual-direction': {
+        'plex-native': 'A - Plex-native integration',
+        'expressive-companion': 'B - Expressive companion',
+        'hybrid': 'C - Native in Plex, expressive in popup',
+      },
+    },
+    sectionNotes: [
+      { id: 'notes-scope', label: 'Scope' },
+      { id: 'notes-decisions', label: 'Key Decisions' },
+      { id: 'notes-steps', label: 'Step Plan' },
+      { id: 'notes-experience', label: 'Experience Blueprint' },
+      { id: 'notes-mockups', label: 'Mockups' },
+      { id: 'notes-state-model', label: 'State Model' },
+      { id: 'notes-qa', label: 'QA Plan' },
+    ],
+  });
+</script>
+</body>
+</html>
