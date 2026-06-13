@@ -1,41 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Plex Lyrics Companion",
-  "version": "2.0",
-  "description": "Keeps Plex Music lyrics available while respecting manual close.",
-  "permissions": [
-    "alarms",
-    "storage",
-    "tabs"
-  ],
-  "host_permissions": [
-    "*://*.plex.tv/*",
-    "*://*/web/*"
-  ],
-  "background": {
-    "scripts": ["background.js"],
-    "service_worker": "background.js"
-  },
+  "name": "Plex Lyrics PiP",
+  "version": "2.1",
+  "description": "Shows Plex Web lyrics in a local Picture-in-Picture window.",
+  "minimum_chrome_version": "116",
   "content_scripts": [
     {
       "matches": [
-        "*://*.plex.tv/*",
-        "*://*/web/*"
+        "https://app.plex.tv/*"
       ],
-      "js": ["content.js"]
-    },
-    {
-      "matches": [
-        "*://*.plex.tv/*",
-        "*://*/web/*"
-      ],
-      "js": ["pip-page.js"],
+      "js": ["lyrics-status.js", "pip-page.js"],
       "world": "MAIN"
     }
   ],
   "action": {
-    "default_title": "Plex Lyrics Companion",
-    "default_popup": "popup.html",
+    "default_title": "Plex Lyrics PiP",
     "default_icon": {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png",
@@ -49,7 +28,11 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "{0f92fce1-8250-4a3e-bcf5-34b9318c2616}"
+      "id": "{bb57550a-75f8-4fed-8d36-568f2c74d4d9}",
+      "strict_min_version": "151.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }

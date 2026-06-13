@@ -1,11 +1,11 @@
 (() => {
-  if (window.__plexLyricsCompanionPipPageLoaded) {
+  if (window.__plexLyricsPipPageLoaded) {
     return;
   }
-  window.__plexLyricsCompanionPipPageLoaded = true;
+  window.__plexLyricsPipPageLoaded = true;
 
-  const BUTTON_ID = 'plex-lyrics-companion-pip-button';
-  const TOAST_ID = 'plex-lyrics-companion-pip-toast';
+  const BUTTON_ID = 'plex-lyrics-pip-button';
+  const TOAST_ID = 'plex-lyrics-pip-toast';
   const LYRICS_BUTTON_SELECTORS = [
     '[data-testid="lyricsButton"]',
     'button[aria-label="Lyrics" i]',
@@ -15,8 +15,9 @@
   const LYRICS_LINE_SELECTOR = 'div[class*="AudioVideoLyrics-line-"]';
   const PIP_DEFAULT_WIDTH = 280;
   const PIP_DEFAULT_HEIGHT = 500;
-  const PIP_SIZE_STORAGE_KEY = 'plexLyricsCompanionPipSize';
-  const PIP_MIN_WIDTH = 220;
+  const PIP_SIZE_STORAGE_KEY = 'plexLyricsPipSize';
+  const PIP_LEGACY_SIZE_STORAGE_KEY = 'plexLyricsCompanionPipSize';
+  const PIP_MIN_WIDTH = 240;
   const PIP_MIN_HEIGHT = 320;
   const PIP_MAX_WIDTH = 2000;
   const PIP_MAX_HEIGHT = 2000;
@@ -37,6 +38,14 @@
     return location.hostname.endsWith('plex.tv')
       || /\bplex\b/i.test(document.title)
       || Boolean(document.querySelector('[data-testid="lyricsButton"], [data-testid="playerControls"]'));
+  }
+
+  function getLyricsSurfaceStatus() {
+    if (!window.PlexLyricsStatus || typeof window.PlexLyricsStatus.findLyricsStatus !== 'function') {
+      return null;
+    }
+
+    return window.PlexLyricsStatus.findLyricsStatus(document);
   }
 
   function supportsDocumentPip() {
@@ -66,7 +75,9 @@
 
   function readSavedPipSize() {
     try {
-      return normalizePipSize(JSON.parse(window.localStorage.getItem(PIP_SIZE_STORAGE_KEY)));
+      const storedSize = window.localStorage.getItem(PIP_SIZE_STORAGE_KEY)
+        || window.localStorage.getItem(PIP_LEGACY_SIZE_STORAGE_KEY);
+      return normalizePipSize(JSON.parse(storedSize));
     } catch (error) {
       return null;
     }
@@ -84,6 +95,7 @@
       });
       if (size) {
         window.localStorage.setItem(PIP_SIZE_STORAGE_KEY, JSON.stringify(size));
+        window.localStorage.removeItem(PIP_LEGACY_SIZE_STORAGE_KEY);
       }
     } catch (error) {
       // UI preferences are nice-to-have; private browsing or teardown can block storage.
@@ -360,8 +372,13 @@
     });
     const activeIndex = lines.findIndex((line) => line.active);
     const textLineCount = lines.filter((line) => !line.empty).length;
+    const lyricsSurfaceStatus = textLineCount === 0 ? getLyricsSurfaceStatus() : null;
+    const statusCopy = lyricsSurfaceStatus && window.PlexLyricsStatus.copyForStatus(lyricsSurfaceStatus.status);
+    const emptyMode = lyricsSurfaceStatus
+      ? (lyricsSurfaceStatus.status === 'lyrics-load-error' ? 'load-error' : 'no-lyrics')
+      : 'empty';
     const mode = textLineCount === 0
-      ? 'empty'
+      ? emptyMode
       : (isTimedLyricsActive() || activeIndex >= 0 ? 'timed' : 'plain');
 
     return {
@@ -369,6 +386,11 @@
       lines,
       activeIndex,
       hasLyrics: textLineCount > 0,
+      emptyState: lyricsSurfaceStatus ? lyricsSurfaceStatus.status : 'waiting',
+      emptyText: statusCopy
+        ? statusCopy.pipEmptyText
+        : 'Open lyrics in Plex, then this window will mirror them here.',
+      statusText: statusCopy ? statusCopy.pipStatus : 'Waiting for Plex lyrics',
     };
   }
 
@@ -383,6 +405,7 @@
   function getSnapshotSignature(snapshot) {
     return [
       snapshot.mode,
+      snapshot.emptyState || '',
       snapshot.activeIndex,
       snapshot.lines.length,
       snapshot.lines.map((line) => `${line.active ? 1 : 0}:${line.empty ? 1 : 0}:${hashText(line.text)}`).join(','),
@@ -563,49 +586,68 @@
         z-index: 2;
         display: grid;
         grid-template-areas:
-          "controls nowplaying close"
-          "status status status";
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        gap: 7px 10px;
-        align-items: start;
+          "nowplaying nowplaying close"
+          "controls progress progress";
+        grid-template-columns: 98px minmax(0, 1fr) 17px;
+        gap: 6px 7px;
+        align-items: center;
         box-sizing: border-box;
-        padding: 10px 10px 11px 12px;
+        padding: 7px 8px 8px;
         border-bottom: 1px solid rgba(255, 226, 150, 0.16);
         background: #0d121b;
       }
 
       .plc-pip-status {
-        grid-area: status;
-        min-width: 0;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
         overflow: hidden;
-        color: #9be7c7;
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0;
-        line-height: 1.25;
-        text-overflow: ellipsis;
+        border: 0;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
         white-space: nowrap;
       }
 
       .plc-pip-controls {
         grid-area: controls;
-        display: flex;
-        gap: 6px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
         align-items: center;
+        justify-self: start;
+        width: 96px;
+        height: 24px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 226, 150, 0.34);
+        border-radius: 999px;
+        background: rgba(18, 24, 33, 0.92);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
 
       .plc-pip-nowplaying {
         grid-area: nowplaying;
-        align-self: center;
+        display: grid;
+        grid-template-areas:
+          "title"
+          "artist";
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+        align-self: stretch;
+        align-items: center;
         min-width: 0;
         color: #f8f0df;
       }
 
-      .plc-pip-title-row {
-        display: flex;
+      .plc-pip-progress-cluster {
+        grid-area: progress;
+        display: grid;
+        grid-template-areas:
+          "progress"
+          "time";
+        align-content: center;
         min-width: 0;
-        align-items: baseline;
-        gap: 4px;
+        height: 26px;
       }
 
       .plc-pip-track-title,
@@ -617,25 +659,24 @@
       }
 
       .plc-pip-track-title {
-        flex: 1 1 auto;
-        font-size: 11px;
+        grid-area: title;
+        font-size: 12.5px;
         font-weight: 900;
         line-height: 1.15;
       }
 
       .plc-pip-track-artist {
-        max-width: 40%;
-        flex: 0 1 auto;
-        color: #8f9aac;
+        grid-area: artist;
+        color: #a8b2c1;
         font-size: 10px;
         font-weight: 800;
         line-height: 1.15;
       }
 
       .plc-pip-progress {
+        grid-area: progress;
         position: relative;
-        height: 4px;
-        margin-top: 6px;
+        height: 5px;
         overflow: hidden;
         border-radius: 999px;
         background: rgba(143, 154, 172, 0.28);
@@ -650,7 +691,8 @@
       }
 
       .plc-pip-time {
-        margin-top: 3px;
+        grid-area: time;
+        justify-self: end;
         overflow: hidden;
         color: #748094;
         font-size: 9px;
@@ -662,25 +704,29 @@
 
       .plc-pip-control {
         display: grid;
-        width: 31px;
-        height: 31px;
+        width: 100%;
+        height: 100%;
         place-items: center;
         padding: 0;
-        border: 1px solid rgba(255, 226, 150, 0.42);
-        border-radius: 999px;
-        background: rgba(21, 27, 36, 0.86);
+        border: 0;
+        border-radius: 0;
+        background: transparent;
         color: #f8f0df;
         cursor: pointer;
       }
 
+      .plc-pip-control + .plc-pip-control {
+        border-left: 1px solid rgba(255, 226, 150, 0.2);
+      }
+
       .plc-pip-control:hover {
-        background: rgba(229, 160, 13, 0.18);
-        border-color: rgba(255, 226, 150, 0.72);
+        background: rgba(229, 160, 13, 0.2);
       }
 
       .plc-pip-control:focus-visible {
-        outline: 3px solid #9be7c7;
-        outline-offset: 2px;
+        outline: 0;
+        background: rgba(155, 231, 199, 0.12);
+        box-shadow: inset 0 0 0 2px #9be7c7;
       }
 
       .plc-pip-control:disabled {
@@ -691,8 +737,8 @@
       .plc-icon {
         position: relative;
         display: block;
-        width: 15px;
-        height: 15px;
+        width: 13px;
+        height: 13px;
       }
 
       .plc-pip-control[data-action="previous"] .plc-icon::before,
@@ -707,9 +753,9 @@
 
       .plc-pip-control[data-action="previous"] .plc-icon::before {
         left: 4px;
-        border-top: 6px solid transparent;
-        border-right: 9px solid currentColor;
-        border-bottom: 6px solid transparent;
+        border-top: 5px solid transparent;
+        border-right: 8px solid currentColor;
+        border-bottom: 5px solid transparent;
       }
 
       .plc-pip-control[data-action="previous"] .plc-icon::after,
@@ -725,35 +771,35 @@
         top: 1px;
         left: 1px;
         width: 2px;
-        height: 13px;
+        height: 11px;
       }
 
       .plc-pip-control[data-action="next"] .plc-icon::before {
         left: 2px;
-        border-top: 6px solid transparent;
-        border-bottom: 6px solid transparent;
-        border-left: 9px solid currentColor;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 8px solid currentColor;
       }
 
       .plc-pip-control[data-action="next"] .plc-icon::after {
         top: 1px;
         right: 1px;
         width: 2px;
-        height: 13px;
+        height: 11px;
       }
 
       .plc-pip-control[data-action="playPause"][data-state="paused"] .plc-icon::before {
         left: 4px;
-        border-top: 7px solid transparent;
-        border-bottom: 7px solid transparent;
-        border-left: 10px solid currentColor;
+        border-top: 6px solid transparent;
+        border-bottom: 6px solid transparent;
+        border-left: 9px solid currentColor;
       }
 
       .plc-pip-control[data-action="playPause"][data-state="playing"] .plc-icon::before,
       .plc-pip-control[data-action="playPause"][data-state="playing"] .plc-icon::after {
         top: 1px;
         width: 3px;
-        height: 13px;
+        height: 11px;
         border-radius: 1px;
       }
 
@@ -768,22 +814,23 @@
       .plc-pip-close {
         grid-area: close;
         align-self: start;
-        width: 34px;
-        height: 34px;
+        justify-self: end;
+        width: 17px;
+        height: 17px;
         padding: 0;
-        border: 1px solid rgba(255, 226, 150, 0.72);
+        border: 1px solid rgba(255, 226, 150, 0.34);
         border-radius: 999px;
-        background: #e5a00d;
-        color: #090c10;
+        background: rgba(229, 160, 13, 0.18);
+        color: #f2c45e;
         cursor: pointer;
-        font-size: 16px;
+        font-size: 10px;
         font-weight: 900;
-        line-height: 32px;
+        line-height: 15px;
         text-align: center;
       }
 
       .plc-pip-close:focus-visible {
-        outline: 3px solid #9be7c7;
+        outline: 2px solid #9be7c7;
         outline-offset: 2px;
       }
 
@@ -855,15 +902,8 @@
 
       @media (max-width: 250px) {
         .plc-pip-header {
-          grid-template-areas:
-            "controls close"
-            "nowplaying nowplaying"
-            "status status";
-          grid-template-columns: minmax(0, 1fr) auto;
-        }
-
-        .plc-pip-close {
-          justify-self: end;
+          grid-template-columns: 98px minmax(0, 1fr) 16px;
+          gap: 6px;
         }
       }
     `;
@@ -908,15 +948,15 @@
     const nowPlaying = pipDocument.createElement('div');
     nowPlaying.className = 'plc-pip-nowplaying';
 
-    const titleRow = pipDocument.createElement('div');
-    titleRow.className = 'plc-pip-title-row';
-
     const title = pipDocument.createElement('div');
     title.className = 'plc-pip-track-title';
     title.textContent = 'Plex Music';
 
     const artist = pipDocument.createElement('div');
     artist.className = 'plc-pip-track-artist';
+
+    const progressCluster = pipDocument.createElement('div');
+    progressCluster.className = 'plc-pip-progress-cluster';
 
     const progress = pipDocument.createElement('div');
     progress.className = 'plc-pip-progress';
@@ -933,8 +973,8 @@
     time.className = 'plc-pip-time';
     time.textContent = '0:00 / 0:00';
 
-    titleRow.append(title, artist);
-    nowPlaying.append(titleRow, progress, time);
+    nowPlaying.append(title, artist);
+    progressCluster.append(progress, time);
 
     const closeButton = pipDocument.createElement('button');
     closeButton.className = 'plc-pip-close';
@@ -955,7 +995,7 @@
     lines.className = 'plc-pip-lines';
     viewport.appendChild(lines);
 
-    header.append(controls, nowPlaying, closeButton, status);
+    header.append(controls, nowPlaying, progressCluster, closeButton, status);
     shell.append(header, viewport);
     pipDocument.head.replaceChildren(style);
     pipDocument.body.replaceChildren(shell);
@@ -1132,14 +1172,15 @@
 
   function syncLyricsLines(pipDocument, linesRoot, snapshot) {
     if (!snapshot.hasLyrics) {
-      if (linesRoot.dataset.kind === 'empty') {
+      if (linesRoot.dataset.kind === 'empty' && linesRoot.dataset.emptyState === snapshot.emptyState) {
         return;
       }
 
       const empty = pipDocument.createElement('p');
       empty.className = 'plc-pip-empty';
-      empty.textContent = 'Open lyrics in Plex, then this window will mirror them here.';
+      empty.textContent = snapshot.emptyText;
       linesRoot.dataset.kind = 'empty';
+      linesRoot.dataset.emptyState = snapshot.emptyState;
       linesRoot.replaceChildren(empty);
       return;
     }
@@ -1152,6 +1193,7 @@
     }
 
     linesRoot.dataset.kind = 'lyrics';
+    delete linesRoot.dataset.emptyState;
     linesRoot.replaceChildren(...snapshot.lines.map((line, index) => createLineElement(pipDocument, line, index)));
   }
 
@@ -1180,9 +1222,9 @@
     const previousScrollTop = viewport.scrollTop;
     lastSignature = signature;
     pipDocument.body.dataset.mode = snapshot.mode;
-    status.textContent = snapshot.mode === 'timed'
+    status.textContent = snapshot.statusText || (snapshot.mode === 'timed'
       ? 'Timed lyrics from Plex'
-      : (snapshot.mode === 'plain' ? 'Plain lyrics from Plex' : 'Waiting for Plex lyrics');
+      : (snapshot.mode === 'plain' ? 'Plain lyrics from Plex' : 'Waiting for Plex lyrics'));
 
     syncLyricsLines(pipDocument, linesRoot, snapshot);
 

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marketplace Release Prep - Wiki</title>
+  <link rel="stylesheet" href="/shared/wiki.css" />
+  <link rel="stylesheet" media="print" href="/shared/print.css" />
+</head>
+<body>
+<div id="wiki-nav"></div>
+<div class="layout">
+
+  <nav class="sidebar">
+    <div>Marketplace Prep</div>
+    <div class="s-head">Sections</div>
+    <a href="#verdict">Verdict</a>
+    <a href="#package">Package Scope</a>
+    <a href="#policy">Policy Audit</a>
+    <a href="#api">API Audit</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#listing">Store Listing</a>
+    <a href="#reviewers">Reviewer Notes</a>
+    <a href="#assets">Assets</a>
+    <a href="#checklist">Release Checklist</a>
+    <a href="#sources">Sources</a>
+    <div class="s-head">Plex Lyrics</div>
+    <a href="/projects/plex-lyrics/">Project Home</a>
+    <a href="/projects/plex-lyrics/task-plan-lyrics-pip.html">Lyrics PiP Plan</a>
+    <a href="/projects/">Projects</a>
+    <a href="/">Wiki Home</a>
+  </nav>
+
+  <div class="main">
+    <div class="breadcrumb">
+      <a href="/">Wiki</a> &rsaquo; <a href="/projects/">Projects</a> &rsaquo; <a href="/projects/plex-lyrics/">Plex Lyrics PiP</a> &rsaquo; Marketplace Release Prep
+    </div>
+
+    <div id="wiki-meta"
+      data-file-path="/projects/plex-lyrics/marketplace-release-prep.html"
+      data-fs-path="/Users/steven/dev/plex-lyrics/wiki/marketplace-release-prep.html"
+      data-tags="plex,lyrics,extension,chrome,firefox,marketplace,release,privacy"
+      data-created="2026-06-13"
+      data-updated="2026-06-13"
+      data-state="ongoing">
+    </div>
+
+    <details class="changelog">
+      <summary>Changelog</summary>
+      <ul>
+        <li><time>2026-06-13</time> - Rotate Firefox add-on ID after AMO duplicate-ID validation failure</li>
+        <li><time>2026-06-13</time> - Add Firefox no-data-collection manifest permission and record clean web-ext lint</li>
+        <li><time>2026-06-13</time> - Verify served wiki route and record web-ext retry result</li>
+        <li><time>2026-06-13</time> - Record local validation and generated review zips</li>
+        <li><time>2026-06-13</time> - Initial marketplace release audit and listing packet</li>
+      </ul>
+    </details>
+
+    <div class="h1-row">
+      <h1>Marketplace Release Prep</h1>
+      <span class="pill pill-teal">Release Packet</span>
+      <span class="pill pill-gold">Chrome + Firefox</span>
+    </div>
+    <p class="sub">Pre-submission audit, package scope, privacy posture, reviewer instructions, and store listing copy for publishing Plex Lyrics PiP.</p>
+
+    <hr />
+
+    <h2 id="verdict">Verdict</h2>
+    <p>The codebase is close to marketplace-ready after the PiP-only pivot. The active extension is single-purpose, MV3, reviewable plain JavaScript, and does not fetch, transmit, or persist lyric bodies. The biggest release-risk item was the broad <code>*://*/web/*</code> content match for self-hosted Plex. The marketplace manifest now targets only <code>https://app.plex.tv/*</code>.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Area</th><th>Status</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">Product focus</td><td><span class="pill pill-green">Ready</span></td><td>One purpose: show Plex Web lyrics in a local Picture-in-Picture window.</td></tr>
+        <tr><td class="svc">Permissions</td><td><span class="pill pill-green">Tightened</span></td><td>No extension API permissions, no static host_permissions key, one content-script match for <code>https://app.plex.tv/*</code>.</td></tr>
+        <tr><td class="svc">Data handling</td><td><span class="pill pill-green">Low risk</span></td><td>No analytics, no network calls, no lyric storage. Only a local PiP viewport-size preference is saved.</td></tr>
+        <tr><td class="svc">Browser support</td><td><span class="pill pill-gold">Must verify</span></td><td>Chrome 116+ and Firefox 151+ minimums reflect Document PiP support; run live smoke tests before submission.</td></tr>
+        <tr><td class="svc">Assets</td><td><span class="pill pill-gold">Needs refresh</span></td><td>Existing screenshots are from older UI generations. New store screenshots should use fake lyric text.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="warn">This is not legal advice. The release posture minimizes content-rights and trademark risk, but a public listing should still avoid implying Plex or lyric-provider affiliation.</div>
+
+    <div class="section-notes">
+      <label for="notes-verdict">Notes - Verdict</label>
+      <textarea id="notes-verdict" placeholder="Final release decision, external review notes, or remaining concerns..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="package">Package Scope</h2>
+    <p>The packaging script builds browser-specific review zips under <code>build/marketplace/</code>. It copies only the runtime extension files, icons, README, and license, then rewrites the manifest for the target marketplace.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Included</th><th>Reason</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">manifest.json</td><td>Target-specific manifest. Chrome package removes Gecko settings; Firefox package removes Chrome minimum.</td></tr>
+        <tr><td class="svc">lyrics-status.js</td><td>Reviewable classifier for no-lyrics and Plex load-error states.</td></tr>
+        <tr><td class="svc">pip-page.js</td><td>Page-world PiP controller, renderer, and Plex DOM mirror.</td></tr>
+        <tr><td class="svc">icons/</td><td>16, 48, and 128 pixel icons used by the passive toolbar action and listings.</td></tr>
+        <tr><td class="svc">README.md + LICENSE</td><td>Public usage, privacy summary, and MIT license text.</td></tr>
+      </tbody>
+    </table>
+
+    <table class="svc-table">
+      <thead><tr><th>Excluded</th><th>Reason</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">wiki/</td><td>Internal project planning and release notes, not runtime extension code.</td></tr>
+        <tr><td class="svc">tests/</td><td>Development-only Node tests.</td></tr>
+        <tr><td class="svc">images/</td><td>Old screenshots are stale and may contain outdated UI expectations.</td></tr>
+        <tr><td class="svc">build/</td><td>Ignored local artifacts, including old backup XPI files, must never be nested into a release upload.</td></tr>
+        <tr><td class="svc">Deleted popup/background files</td><td>The old session companion mode is retired and not referenced by the active manifest.</td></tr>
+      </tbody>
+    </table>
+
+    <pre><code>scripts/package-extension.sh all</code></pre>
+
+    <div class="section-notes">
+      <label for="notes-package">Notes - Package Scope</label>
+      <textarea id="notes-package" placeholder="Package changes, artifact paths, or files to include/exclude..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="policy">Policy Audit</h2>
+    <p>The store posture should lead with narrow purpose, narrow access, transparent behavior, and no data transmission. The implementation now aligns with that story.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Marketplace Concern</th><th>Current State</th><th>Submission Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Chrome single purpose</td>
+          <td>All features directly support one Plex lyric PiP experience.</td>
+          <td>Describe previous/play-pause/next controls as part of the PiP lyric viewer, not a general Plex remote.</td>
+        </tr>
+        <tr>
+          <td class="svc">Chrome permissions</td>
+          <td>No extension API permissions. The content script runs only on <code>https://app.plex.tv/*</code>.</td>
+          <td>Justification: the page access is required to read the lyrics Plex already renders and open Document PiP from a trusted page click.</td>
+        </tr>
+        <tr>
+          <td class="svc">Chrome MV3 code</td>
+          <td>No remote code, no <code>eval()</code>, no external scripts, no obfuscation, no build bundling.</td>
+          <td>Submit the plain source package generated by the script; reviewer can read behavior directly.</td>
+        </tr>
+        <tr>
+          <td class="svc">Chrome IP/impersonation</td>
+          <td>Name uses Plex descriptively and no Plex logos are bundled.</td>
+          <td>Listing must say "not affiliated with or endorsed by Plex" and avoid official marks.</td>
+        </tr>
+        <tr>
+          <td class="svc">Firefox data transmission</td>
+          <td>No data transmission occurs.</td>
+          <td>AMO data disclosure should state no collection/transmission. If future analytics are added, consent flow is required.</td>
+        </tr>
+        <tr>
+          <td class="svc">Firefox reviewability</td>
+          <td>Plain JavaScript files, no minification, no dependencies, no generated runtime code.</td>
+          <td>Include reviewer notes explaining the need for <code>world: "MAIN"</code> and Document PiP.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="danger">Do not submit screenshots or promotional video that shows real copyrighted lyric excerpts. Use placeholder lyric lines made for the listing.</div>
+
+    <div class="section-notes">
+      <label for="notes-policy">Notes - Policy Audit</label>
+      <textarea id="notes-policy" placeholder="Store feedback, permission wording, trademark notes, or policy updates..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="api">API Audit</h2>
+    <p>The extension is intentionally light on extension APIs. Its risky browser dependency is not a privileged extension API; it is the web-platform Document Picture-in-Picture API exposed to the Plex page.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>API / Capability</th><th>Use</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">Document Picture-in-Picture</td><td>Opens the always-on-top lyrics window from the in-page click.</td><td>Limited browser support; requires a secure context and transient user activation.</td></tr>
+        <tr><td class="svc">MutationObserver</td><td>Watches Plex UI changes so lyrics and active-line state update.</td><td>Performance-sensitive; mitigated by throttled rendering and narrow app.plex.tv match.</td></tr>
+        <tr><td class="svc">Media Session metadata</td><td>Optional title/artist display inside PiP.</td><td>Session-only display. Do not persist listening history.</td></tr>
+        <tr><td class="svc">HTMLMediaElement</td><td>Optional progress readout and playback state.</td><td>Session-only display. No audio analysis or data export.</td></tr>
+        <tr><td class="svc">localStorage</td><td>Saves only PiP viewport <code>{width,height}</code> on the Plex origin.</td><td>Safe but disclose as local UI preference. Legacy storage key is migrated.</td></tr>
+        <tr><td class="svc">Content script <code>world: "MAIN"</code></td><td>Required so the PiP controller shares the page realm and can access the returned PiP document.</td><td>Page can inspect or interfere with code; acceptable because no extension secrets or privileged APIs flow through it.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-api">Notes - API Audit</label>
+      <textarea id="notes-api" placeholder="Compatibility findings, browser errors, or API fallback notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="privacy">Privacy</h2>
+    <p>Use this as the base privacy-policy text for both marketplaces and the README.</p>
+
+    <div class="note">
+      <strong>Privacy policy draft:</strong> Plex Lyrics PiP does not collect, sell, share, or transmit personal data. The extension does not fetch lyrics from external services and does not send lyric text, track titles, artist names, Plex server information, browsing history, or account information anywhere. Lyrics and playback metadata are read only from the current Plex Web page and displayed locally in the Picture-in-Picture window. The extension stores only the last Picture-in-Picture viewport size as a local UI preference on the device.
+    </div>
+
+    <table class="svc-table">
+      <thead><tr><th>Data Type</th><th>Handling</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">Lyric text</td><td>Read from the current Plex page and rendered in the PiP window. Not stored, logged, transmitted, or exported.</td></tr>
+        <tr><td class="svc">Track title / artist</td><td>Read from browser Media Session when available. Displayed locally only.</td></tr>
+        <tr><td class="svc">Plex account or server data</td><td>Not read intentionally and not transmitted.</td></tr>
+        <tr><td class="svc">PiP size preference</td><td>Stored locally as width and height numbers so the next PiP opens at the user's preferred size.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-privacy">Notes - Privacy</label>
+      <textarea id="notes-privacy" placeholder="Privacy policy URL, disclosure updates, or future data changes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="listing">Store Listing</h2>
+    <h3>Recommended Name</h3>
+    <p><strong>Plex Lyrics PiP</strong></p>
+
+    <h3>Short Description</h3>
+    <p>Show Plex Web lyrics in a local Picture-in-Picture window.</p>
+
+    <h3>Long Description</h3>
+    <p>Plex Lyrics PiP adds a small Lyrics PiP button inside Plex Web. When you click it, the extension opens a local Picture-in-Picture window and mirrors the lyrics Plex already shows for the current track.</p>
+    <p>It works with timed and plain lyrics, keeps the Plex lyrics panel available while PiP is open, and shows a calm state when Plex has no lyrics or cannot load them. The PiP window also includes compact previous, play/pause, next, now-playing, and progress controls that use Plex's own player controls.</p>
+    <p>The extension does not provide, fetch, scrape, store, or share lyrics. It only displays lyrics already available in your Plex Web session. Plex Pass, region, and track availability still determine whether lyrics appear.</p>
+    <p>Plex Lyrics PiP is an independent extension and is not affiliated with, endorsed by, or produced by Plex.</p>
+
+    <h3>Feature Bullets</h3>
+    <ul>
+      <li>Portrait Picture-in-Picture lyric viewer for Plex Web.</li>
+      <li>Mirrors Plex-provided timed or plain lyrics.</li>
+      <li>Highlights Plex's current lyric line when timed lyrics are available.</li>
+      <li>Shows no-lyrics and Plex lyric-load-error states clearly.</li>
+      <li>Includes compact playback controls and local progress readout.</li>
+      <li>No analytics, external lyric lookup, or lyric storage.</li>
+    </ul>
+
+    <h3>Search Terms</h3>
+    <p><code>Plex lyrics, Plex Web, lyrics PiP, picture in picture, music lyrics, Plex music, timed lyrics</code></p>
+
+    <div class="section-notes">
+      <label for="notes-listing">Notes - Store Listing</label>
+      <textarea id="notes-listing" placeholder="Final copy, title experiments, category choices, or localized text..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="reviewers">Reviewer Notes</h2>
+    <p>Use this in the Chrome "review notes" and AMO reviewer notes fields.</p>
+
+    <div class="note">
+      <strong>Reviewer instructions draft:</strong> This extension works on <code>https://app.plex.tv/*</code>. Sign in to Plex Web, start music playback, open the Plex lyrics panel for a track with lyrics, then click the injected <code>Lyrics PiP</code> button near the bottom-right of the page. The extension opens a Document Picture-in-Picture window from that user click and mirrors only the lyrics Plex already displays in the page. It does not make network requests, fetch lyrics, use analytics, or transmit data. If the test account or track has no lyrics, the PiP window shows a local "No lyrics for this song" state.
+    </div>
+
+    <table class="svc-table">
+      <thead><tr><th>Question</th><th>Answer for Reviewers</th></tr></thead>
+      <tbody>
+        <tr><td>Why page-world script?</td><td>Document PiP access must stay in the page realm in Firefox/Zen to avoid cross-origin access failures when working with the returned PiP window.</td></tr>
+        <tr><td>Why app.plex.tv access?</td><td>The extension must read the visible Plex lyrics DOM and click Plex's own lyrics button only while PiP is open.</td></tr>
+        <tr><td>What is stored?</td><td>Only the last PiP viewport width and height. No lyric text, track metadata, account data, or server data is stored.</td></tr>
+        <tr><td>Does it bypass Plex Pass or lyric availability?</td><td>No. It mirrors only lyrics Plex Web already displays to the signed-in user.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-reviewers">Notes - Reviewer Notes</label>
+      <textarea id="notes-reviewers" placeholder="Reviewer account details, known test tracks, or store-specific notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="assets">Assets</h2>
+    <p>The current icons are valid runtime assets, but screenshots need a fresh PiP pass. Use fake lyric text and avoid official Plex logos.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Asset</th><th>Recommendation</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">Icon</td><td>Keep the current 16/48/128 PNG set for the first submission unless a new neutral PiP mark is created.</td></tr>
+        <tr><td class="svc">Screenshot 1</td><td>Plex Web with the injected <code>Lyrics PiP</code> button visible, no copyrighted lyric text.</td></tr>
+        <tr><td class="svc">Screenshot 2</td><td>Portrait PiP window with fake timed lyric lines and active-line highlight.</td></tr>
+        <tr><td class="svc">Screenshot 3</td><td>No-lyrics or load-error state to show honest availability handling.</td></tr>
+        <tr><td class="svc">Promo copy</td><td>Use descriptive screenshots, not Plex logos or official branding claims.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-assets">Notes - Assets</label>
+      <textarea id="notes-assets" placeholder="Screenshot paths, image requirements, or visual asset decisions..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="checklist">Release Checklist</h2>
+    <h3>Local Validation - 2026-06-13</h3>
+    <table class="svc-table">
+      <thead><tr><th>Check</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td class="svc"><code>node --test</code></td><td>Passed 4 focused classifier tests.</td></tr>
+        <tr><td class="svc"><code>node --check pip-page.js</code></td><td>Passed syntax check.</td></tr>
+        <tr><td class="svc"><code>node --check lyrics-status.js</code></td><td>Passed syntax check.</td></tr>
+        <tr><td class="svc">Manifest JSON parse</td><td>Passed.</td></tr>
+        <tr><td class="svc">Firefox add-on ID</td><td>Rotated to <code>{bb57550a-75f8-4fed-8d36-568f2c74d4d9}</code> after AMO rejected the previous ID as duplicate.</td></tr>
+        <tr><td class="svc">Package generation</td><td>Created <code>build/marketplace/20260613192620/plex-lyrics-pip-2.1-chrome.zip</code> and <code>build/marketplace/20260613192620/plex-lyrics-pip-2.1-firefox.zip</code>.</td></tr>
+        <tr><td class="svc">Archive inspection</td><td>Both zips contain only manifest, runtime scripts, icons, README, and license.</td></tr>
+        <tr><td class="svc">Wiki route</td><td>Passed after unsandboxed localhost check: <code>http://localhost:8090/projects/plex-lyrics/marketplace-release-prep.html</code> returned <code>200</code>.</td></tr>
+        <tr><td class="svc"><code>web-ext --version</code></td><td>Global <code>web-ext</code> version <code>10.4.0</code>.</td></tr>
+        <tr><td class="svc"><code>web-ext lint</code></td><td>Passed on <code>build/marketplace/20260613192620/firefox</code> with <code>0</code> errors, <code>0</code> notices, and <code>0</code> warnings. The unrelated web-ext update-check message reports local <code>~/.config</code> ownership access only.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="steps">
+      <div class="step done">
+        <div class="step-title">Retire old popup/session files from the active package</div>
+        <p>Manifest references only <code>lyrics-status.js</code> and <code>pip-page.js</code>. Packaging script excludes deleted and stale files.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Narrow marketplace URL access</div>
+        <p>Content script match is now <code>https://app.plex.tv/*</code>; broad self-hosted <code>/web/</code> matching is out of the public package.</p>
+      </div>
+      <div class="step done">
+        <div class="step-title">Prepare listing, privacy, and reviewer copy</div>
+        <p>Draft copy is captured on this page.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Run live browser smoke tests</div>
+        <p>Verify Chrome stable and Firefox/Zen with a real Plex account, timed lyrics, plain lyrics, no lyrics, track changes, resize persistence, and close behavior.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Refresh screenshots</div>
+        <p>Create fake-lyric screenshots for the listing and replace old project images after smoke testing.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Run store linters</div>
+        <p>Firefox <code>web-ext lint</code> is clean. Still load the Chrome zip as an unpacked extension before final upload.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Submit staged rollout</div>
+        <p>Submit Chrome and Firefox packages with reviewer notes. Watch for permission, trademark, or data-disclosure feedback.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-checklist">Notes - Release Checklist</label>
+      <textarea id="notes-checklist" placeholder="QA results, blockers, submission dates, or approval notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="sources">Sources</h2>
+    <table class="svc-table">
+      <thead><tr><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr><td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/">Chrome Web Store Program Policies</a></td><td>Trust, transparency, privacy, quality, and technical requirements.</td></tr>
+        <tr><td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/permissions">Chrome Use of Permissions</a></td><td>Narrowest permission guidance.</td></tr>
+        <tr><td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/mv3-requirements">Chrome MV3 Requirements</a></td><td>Self-contained logic and no remote-code posture.</td></tr>
+        <tr><td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/quality-guidelines-faq">Chrome Quality Guidelines FAQ</a></td><td>Single-purpose framing.</td></tr>
+        <tr><td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/impersonation-and-intellectual-property">Chrome Impersonation &amp; IP Policy</a></td><td>Unaffiliated naming and trademark posture.</td></tr>
+        <tr><td class="svc"><a href="https://extensionworkshop.com/documentation/publish/add-on-policies/">Firefox Add-on Policies</a></td><td>Data transmission, consent, reviewability, and AMO release expectations.</td></tr>
+        <tr><td class="svc"><a href="https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/">Firefox Built-in Data Consent</a></td><td><code>data_collection_permissions</code> manifest syntax and <code>required: ["none"]</code> for no data collection.</td></tr>
+        <tr><td class="svc"><a href="https://developer.chrome.com/docs/web-platform/document-picture-in-picture">Chrome Document Picture-in-Picture</a></td><td>Browser support, PiP behavior, and request options.</td></tr>
+        <tr><td class="svc"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Document_Picture-in-Picture_API">MDN Document Picture-in-Picture API</a></td><td>Limited availability and secure-context requirement.</td></tr>
+        <tr><td class="svc"><a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/content_scripts">MDN content_scripts</a></td><td><code>world: "MAIN"</code> behavior and risks.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-sources">Notes - Sources</label>
+      <textarea id="notes-sources" placeholder="Sources to recheck before final upload..."></textarea>
+    </div>
+
+    <div id="wiki-copy-bar"></div>
+  </div>
+</div>
+
+<script src="/shared/wiki.js"></script>
+<script src="/shared/nav.js"></script>
+<script>
+  initWikiPage({
+    sectionNotes: [
+      { id: 'notes-verdict', label: 'Verdict' },
+      { id: 'notes-package', label: 'Package Scope' },
+      { id: 'notes-policy', label: 'Policy Audit' },
+      { id: 'notes-api', label: 'API Audit' },
+      { id: 'notes-privacy', label: 'Privacy' },
+      { id: 'notes-listing', label: 'Store Listing' },
+      { id: 'notes-reviewers', label: 'Reviewer Notes' },
+      { id: 'notes-assets', label: 'Assets' },
+      { id: 'notes-checklist', label: 'Release Checklist' },
+      { id: 'notes-sources', label: 'Sources' },
+    ],
+  });
+</script>
+</body>
+</html>

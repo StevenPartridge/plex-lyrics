@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plex Lyrics Companion - Wiki</title>
+  <title>Plex Lyrics PiP - Wiki</title>
   <link rel="stylesheet" href="/shared/wiki.css" />
   <link rel="stylesheet" media="print" href="/shared/print.css" />
 </head>
@@ -28,12 +28,12 @@
   </nav>
 
   <div class="main">
-    <div class="breadcrumb"><a href="/">Wiki</a> &rsaquo; <a href="/projects/">Projects</a> &rsaquo; Plex Lyrics Companion</div>
+    <div class="breadcrumb"><a href="/">Wiki</a> &rsaquo; <a href="/projects/">Projects</a> &rsaquo; Plex Lyrics PiP</div>
 
     <div id="wiki-meta"
       data-file-path="/projects/plex-lyrics/index.html"
       data-fs-path="/Users/steven/dev/plex-lyrics/wiki/index.html"
-      data-tags="plex,lyrics,firefox,extension,webextension,automation"
+      data-tags="plex,lyrics,firefox,extension,webextension,picture-in-picture"
       data-created="2026-06-01"
       data-updated="2026-06-13"
       data-state="under-construction">
@@ -42,6 +42,9 @@
     <details class="changelog">
       <summary>Changelog</summary>
       <ul>
+        <li><time>2026-06-13</time> - Add marketplace release-prep page and narrow public package scope</li>
+        <li><time>2026-06-13</time> - Pivot current behavior to PiP-only and remove popup/session automation docs</li>
+        <li><time>2026-06-13</time> - Distinguish no-lyrics, Plex lyric load errors, and lyrics-control detection failures</li>
         <li><time>2026-06-13</time> - Add Lyrics PiP research and build task plan</li>
         <li><time>2026-06-06</time> - Polish Open Plex behavior and document temporary-load test results</li>
         <li><time>2026-06-06</time> - Record Zen profile rollback after local MV3 package crashed Zen</li>
@@ -53,11 +56,11 @@
     </details>
 
     <div class="h1-row">
-      <h1>Plex Lyrics Companion</h1>
-      <span class="pill pill-teal">Firefox Add-on</span>
+      <h1>Plex Lyrics PiP</h1>
+      <span class="pill pill-teal">Chrome + Firefox Extension</span>
       <span class="pill pill-blue">In Development</span>
     </div>
-    <p class="sub">Small WebExtension that keeps Plex Music lyrics available while respecting manual close and showing clear session state.</p>
+    <p class="sub">Small WebExtension that mirrors Plex Web lyrics into a local Picture-in-Picture window while keeping lyric text session-only.</p>
 
     <hr />
 
@@ -65,20 +68,21 @@
 
     <table class="svc-table">
       <tbody>
-        <tr><th>Status</th><td>MV3 overhaul in progress locally. Published store listing may still describe the older Auto Clicker version.</td></tr>
+        <tr><th>Status</th><td>PiP-only local build in progress. Published store listing may still describe the older Auto Clicker version.</td></tr>
         <tr><th>Install</th><td><a href="https://addons.mozilla.org/en-US/firefox/addon/plex-lyrics-auto-clicker/">Firefox Add-ons listing</a></td></tr>
         <tr><th>Repository</th><td><code>git@github.com:StevenPartridge/plex-lyrics.git</code></td></tr>
-        <tr><th>Runtime</th><td>Manifest V3 WebExtension, plain HTML/CSS/JavaScript, cross-browser background registration</td></tr>
-        <tr><th>Extension Version</th><td><code>2.0</code> in <code>manifest.json</code></td></tr>
-        <tr><th>Permissions</th><td><code>alarms</code>, <code>storage</code>, <code>tabs</code>; host permissions for Plex Web URLs</td></tr>
-        <tr><th>Content Matches</th><td><code>*://*.plex.tv/*</code> and <code>*://*/web/*</code></td></tr>
+        <tr><th>Runtime</th><td>Manifest V3 WebExtension, plain JavaScript content scripts, page-realm Document PiP controller</td></tr>
+        <tr><th>Extension Version</th><td><code>2.1</code> in <code>manifest.json</code></td></tr>
+        <tr><th>Permissions</th><td>No extension API permissions and no <code>host_permissions</code> manifest key; the content script matches only <code>https://app.plex.tv/*</code>.</td></tr>
+        <tr><th>Toolbar Action</th><td>Passive icon and title only; no popup, badge state, or click handler.</td></tr>
+        <tr><th>Content Matches</th><td><code>https://app.plex.tv/*</code></td></tr>
         <tr><th>Validation Style</th><td>Static syntax/manifest checks plus manual extension loading and Plex Web smoke testing.</td></tr>
       </tbody>
     </table>
 
-    <p>The extension exists to work around the friction of Plex not automatically keeping lyrics visible across track changes. The user starts a session from a Plex-native popup. The content script observes Plex Music, opens lyrics when appropriate, and pauses automation immediately when lyrics are manually closed.</p>
+    <p>The extension now has one product mode: the user opens a focused <code>Lyrics PiP</code> window from inside Plex Web. While PiP is open, <code>pip-page.js</code> keeps Plex's own lyrics panel available as the source and mirrors only the current page's lyric DOM into the PiP window. When PiP closes, the extension stops forcing Plex lyrics open.</p>
 
-    <div class="aside">The older screenshots in <code>images/</code> and <code>wiki/assets/</code> show the pre-overhaul timer UI and need refreshing after a live Plex smoke test.</div>
+    <div class="aside">The older screenshots in <code>images/</code> and <code>wiki/assets/</code> show pre-PiP or popup-era UI and need refreshing after a live Plex PiP smoke test.</div>
 
     <div class="section-notes">
       <label for="notes-overview">Notes - Overview</label>
@@ -91,28 +95,24 @@
 
     <div class="steps">
       <div class="step">
-        <div class="step-title">Open the extension popup</div>
-        <p><code>popup.html</code> renders a Plex-native control center with current state, Plex tab status, lyrics status, primary action, Stop, Open/Focus Plex, Check again, and last event.</p>
+        <div class="step-title">Open Plex Web</div>
+        <p>The public marketplace content script loads on <code>https://app.plex.tv/*</code>, then verifies the page looks like Plex before adding UI.</p>
       </div>
       <div class="step">
-        <div class="step-title">Restore saved session state</div>
-        <p><code>popup.js</code> asks the background script for the stored <code>lyricsCompanionSession</code>, then renders state-specific copy and actions.</p>
+        <div class="step-title">Click Lyrics PiP</div>
+        <p><code>pip-page.js</code> injects a small <code>Lyrics PiP</code> button in the Plex page. The trusted page click calls <code>window.documentPictureInPicture.requestWindow()</code>.</p>
       </div>
       <div class="step">
-        <div class="step-title">Start a session</div>
-        <p>The popup sends <code>START_SESSION</code>. <code>background.js</code> stores a session state, updates the toolbar badge, and asks matching Plex tabs to sync.</p>
+        <div class="step-title">Mirror Plex lyrics</div>
+        <p>While PiP is open, the page-world script snapshots Plex's visible lyrics DOM, active-line class, no-lyrics state, load-error state, now-playing metadata, and media progress in memory only.</p>
       </div>
       <div class="step">
-        <div class="step-title">Observe Plex</div>
-        <p><code>content.js</code> uses a MutationObserver and a slower fallback poll to watch the lyrics button and selected state.</p>
+        <div class="step-title">Keep the source panel available</div>
+        <p>If Plex closes its lyrics panel during a song change, PiP throttles a click on Plex's main lyrics button so the PiP window has a current source to mirror.</p>
       </div>
       <div class="step">
-        <div class="step-title">Click lyrics when needed</div>
-        <p>When active and lyrics are hidden without a trusted manual close event, the content script dispatches a Plex-style click sequence on the lyrics button and returns explicit statuses.</p>
-      </div>
-      <div class="step">
-        <div class="step-title">Pause on manual close</div>
-        <p>Trusted user interaction with the lyrics control or likely close control followed by lyrics hiding enters <code>pausedByManualClose</code>. The badge shows <code>PAUSE</code>, and lyrics are not reopened until Resume.</p>
+        <div class="step-title">Close PiP to stop</div>
+        <p>Closing the PiP window clears the PiP runtime state. Plex lyrics are no longer forced open until the user clicks <code>Lyrics PiP</code> again.</p>
       </div>
     </div>
 
@@ -128,12 +128,9 @@
     <table class="svc-table">
       <thead><tr><th>File</th><th>Role</th><th>Important Details</th></tr></thead>
       <tbody>
-        <tr><td class="svc">manifest.json</td><td>Extension manifest</td><td>Manifest V3; registers <code>action</code>, content scripts, host permissions, alarms, icons, and cross-browser background entry.</td></tr>
-        <tr><td class="svc">background.js</td><td>Session coordinator</td><td>Owns <code>lyricsCompanionSession</code>, badge state, alarms, tab targeting, popup messages, and content-script status updates.</td></tr>
-        <tr><td class="svc">content.js</td><td>Plex DOM observer</td><td>Observes Plex UI, detects manual close, opens lyrics only while active, and renders the Plex-native toast.</td></tr>
-        <tr><td class="svc">popup.html</td><td>Extension UI shell</td><td>State-based Plex-native control center with no timer controls.</td></tr>
-        <tr><td class="svc">popup.js</td><td>Popup behavior</td><td>Renders shared session state and sends Start, Pause, Resume, Stop, Open/Focus Plex, and Check again commands.</td></tr>
-        <tr><td class="svc">styles.css</td><td>Popup styling</td><td>Dark Plex-adjacent visual system with gold accent, album tile, status panel, and stable button layout.</td></tr>
+        <tr><td class="svc">manifest.json</td><td>Extension manifest</td><td>Manifest V3; registers a passive action icon and the page-world PiP content script for <code>https://app.plex.tv/*</code>.</td></tr>
+        <tr><td class="svc">lyrics-status.js</td><td>Shared lyrics status classifier</td><td>Detects Plex no-lyrics and lyric load-error messages for PiP empty states and tests.</td></tr>
+        <tr><td class="svc">pip-page.js</td><td>PiP controller and renderer</td><td>Injects the in-page button, opens Document PiP, mirrors Plex lyrics, bridges playback controls, and persists only PiP viewport size.</td></tr>
         <tr><td class="svc">icons/</td><td>Add-on icons</td><td>16, 48, and 128 pixel icons referenced by the browser action.</td></tr>
         <tr><td class="svc">images/</td><td>README screenshots</td><td>Full-page and close-up screenshots used for project documentation.</td></tr>
       </tbody>
@@ -165,7 +162,7 @@
       <li>Choose <code>This Firefox</code>.</li>
       <li>Choose <code>Load Temporary Add-on</code>.</li>
       <li>Select this repository's <code>manifest.json</code>.</li>
-      <li>Open Plex Web, play music, start the add-on, and verify lyrics open after a track change.</li>
+      <li>Open Plex Web, play music, click <code>Lyrics PiP</code>, and verify the PiP window mirrors lyrics.</li>
     </ol>
 
     <h3>Zen Profile Test Package</h3>
@@ -176,12 +173,13 @@
     <table class="svc-table">
       <thead><tr><th>Check</th><th>Expected Result</th></tr></thead>
       <tbody>
-        <tr><td>Popup opens</td><td>State, Plex tab, lyrics status, and last event render without timer controls.</td></tr>
-        <tr><td>Start with Plex open</td><td>Session state becomes <code>active</code>; badge shows <code>ON</code>; lyrics open once if hidden.</td></tr>
-        <tr><td>Manual close</td><td>Session state becomes <code>pausedByManualClose</code>; badge shows <code>PAUSE</code>; lyrics remain closed until Resume.</td></tr>
-        <tr><td>Resume</td><td>Session returns to <code>active</code> and asks Plex tabs to open lyrics if needed.</td></tr>
-        <tr><td>No Plex tab</td><td>Session enters <code>waitingForPlex</code>; badge shows <code>WAIT</code>; <code>Open Plex</code> opens Plex Web and content-ready later resumes active behavior.</td></tr>
-        <tr><td>Stop</td><td>Session becomes <code>idle</code>; badge clears; content scripts stop clicking.</td></tr>
+        <tr><td>Open PiP from injected control</td><td>PiP opens only after the in-page user click and renders the portrait lyrics surface.</td></tr>
+        <tr><td>Timed lyrics</td><td>Plex's active line is highlighted in PiP and scrolls smoothly without whole-list flashing.</td></tr>
+        <tr><td>Plain lyrics</td><td>PiP shows the lyric sheet without implying live sync and preserves manual scroll.</td></tr>
+        <tr><td>No lyrics for current song</td><td>PiP says <code>No lyrics for this song</code> and keeps watching for the next track.</td></tr>
+        <tr><td>Plex lyric load error</td><td>PiP says <code>Plex could not load lyrics</code> and makes clear the error came from Plex.</td></tr>
+        <tr><td>Track changes</td><td>Old lyrics clear quickly; Plex lyrics reopen only while PiP remains open.</td></tr>
+        <tr><td>Close PiP</td><td>The extension stops forcing Plex lyrics open. No toolbar badge or popup state remains.</td></tr>
       </tbody>
     </table>
 
@@ -198,10 +196,10 @@
       <thead><tr><th>Risk</th><th>Why It Matters</th><th>Likely Fix</th></tr></thead>
       <tbody>
         <tr><td>Plex DOM drift</td><td>The selector and selected-state class are implementation details in Plex Web and may change without notice.</td><td>Smoke test against current Plex; add fallback selectors if the UI changed.</td></tr>
-        <tr><td>MV3 cross-browser behavior</td><td>Firefox uses MV3 background scripts while Chrome uses <code>service_worker</code>; both entries point at the same file.</td><td>Manual load in Firefox; optional later package validation with <code>web-ext</code> or browser-specific smoke tests.</td></tr>
-        <tr><td>Manual close detection scope</td><td>The close detection depends on trusted interactions with likely lyrics or close controls before the selected state disappears.</td><td>Smoke test live Plex; add selectors for any close affordance the observer misses.</td></tr>
-        <tr><td>Toast placement drift</td><td>Plex layout changes could make the toast feel poorly positioned.</td><td>Keep toast fixed and minimal; adjust after live player screenshots.</td></tr>
-        <tr><td>Broad content match</td><td><code>*://*/web/*</code> supports self-hosted Plex, but also matches unrelated pages with <code>/web/</code> paths.</td><td>Runtime guards check for likely Plex pages before interacting.</td></tr>
+        <tr><td>Document PiP support</td><td>The feature depends on browser support for arbitrary HTML Picture-in-Picture from a trusted click.</td><td>Keep feature detection and unsupported-browser copy; test Zen, Firefox, Chrome, and Edge separately.</td></tr>
+        <tr><td>Page-world content script support</td><td>Zen/Firefox behavior depends on the manifest <code>world: "MAIN"</code> script path working reliably.</td><td>Continue temporary-load smoke tests before public packaging.</td></tr>
+        <tr><td>PiP toast placement drift</td><td>Plex layout changes could make PiP unavailable/error toasts feel poorly positioned.</td><td>Keep toast fixed and minimal; adjust after live player screenshots.</td></tr>
+        <tr><td>Self-hosted Plex support</td><td>The public marketplace manifest no longer injects into arbitrary <code>/web/</code> paths, which avoids broad site access but drops direct self-hosted URL support.</td><td>Use <code>app.plex.tv</code> for marketplace release; revisit self-hosted support later with an opt-in permission flow.</td></tr>
       </tbody>
     </table>
 
@@ -216,12 +214,16 @@
 
     <div class="two-col">
       <div class="col-card">
+        <h3><a href="/projects/plex-lyrics/marketplace-release-prep.html">Marketplace Release Prep</a></h3>
+        <p>Pre-submission audit, package scope, privacy posture, reviewer instructions, and Chrome/Firefox store listing copy for publishing the PiP-only extension.</p>
+      </div>
+      <div class="col-card">
         <h3><a href="/projects/plex-lyrics/task-plan-lyrics-pip.html">Lyrics PiP Research &amp; Build Plan</a></h3>
         <p>Research-backed task plan for mirroring Plex-provided lyrics into a beautiful Picture-in-Picture window, including market research, browser compatibility, release risk, and design direction.</p>
       </div>
       <div class="col-card">
         <h3><a href="/projects/plex-lyrics/task-plan-interface-overhaul.html">Lyrics Companion Overhaul</a></h3>
-        <p>Product and design task plan for replacing the timer-first popup with a state-based companion that keeps lyrics open, respects manual close, and makes paused/canceled state visible.</p>
+        <p>Historical product and design task plan for the state-based popup companion. Superseded by the PiP-only direction once the PiP feature proved better aligned with the real workflow.</p>
       </div>
     </div>
 
@@ -241,15 +243,15 @@
       </div>
       <div class="step done">
         <div class="step-title">Execute Lyrics Companion overhaul</div>
-        <p>Manifest V3, session state, manual-close pause behavior, observer-first content script, toolbar badges, toast, and Plex-native popup have been implemented locally.</p>
+        <p>Manifest V3, session state, manual-close pause behavior, observer-first content script, toolbar badges, toast, and Plex-native popup were implemented locally, then retired in favor of the PiP-only surface.</p>
       </div>
       <div class="step">
         <div class="step-title">Run a current Plex smoke test</div>
-        <p>Load the temporary add-on, play a Plex music track, and confirm selector fallbacks, selected-state detection, manual close, badge state, toast placement, Open/Focus Plex behavior, and resume behavior.</p>
+        <p>Load the temporary add-on, play a Plex music track, click <code>Lyrics PiP</code>, and confirm selector fallbacks, active-line sync, no-lyrics/load-error states, playback controls, resize persistence, and close behavior.</p>
       </div>
       <div class="step">
         <div class="step-title">Refresh screenshots</div>
-        <p>Replace old timer UI screenshots in <code>images/</code> and <code>wiki/assets/</code> with the Plex-native popup and, if possible, the in-Plex toast.</p>
+        <p>Replace old timer and popup screenshots in <code>images/</code> and <code>wiki/assets/</code> with the in-page <code>Lyrics PiP</code> control and portrait PiP renderer.</p>
       </div>
       <div class="step">
         <div class="step-title">Package validation</div>
@@ -273,6 +275,8 @@
     <table class="svc-table">
       <thead><tr><th>Date</th><th>Change</th><th>Notes</th></tr></thead>
       <tbody>
+        <tr><td>2026-06-13</td><td>PiP-only product pivot</td><td>Removed popup/session automation, background coordination, toolbar badge state, and standalone content-script clicking. The in-page <code>Lyrics PiP</code> control is now the active product surface.</td></tr>
+        <tr><td>2026-06-13</td><td>Lyrics failure states split</td><td>Shared classifier and PiP empty states now distinguish no lyrics, Plex lyric load errors, and lyrics-control detection failures.</td></tr>
         <tr><td>2026-06-13</td><td>Lyrics PiP task plan created</td><td>Captured market research, browser compatibility, Plex/store policy risks, design direction, architecture, and step plan for a Picture-in-Picture lyrics companion.</td></tr>
         <tr><td>2026-06-06</td><td>Temporary Zen load validated</td><td>Steven confirmed the temporary add-on works and looks good. Polish pass changed the ambiguous Find Plex control into concrete Open/Focus Plex behavior.</td></tr>
         <tr><td>2026-06-06</td><td>Zen profile package rolled back</td><td>Directly copying the local MV3 XPI into the active Zen profile caused crashes, so the signed v1.2 XPI was restored. Next test should use temporary loading.</td></tr>

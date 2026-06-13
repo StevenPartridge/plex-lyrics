@@ -37,13 +37,15 @@
       data-fs-path="/Users/steven/dev/plex-lyrics/wiki/task-plan-interface-overhaul.html"
       data-tags="plex,lyrics,task-plan,ux,product,extension,automation"
       data-created="2026-06-06"
-      data-updated="2026-06-06"
+      data-updated="2026-06-13"
       data-state="under-construction">
     </div>
 
     <details class="changelog">
       <summary>Changelog</summary>
       <ul>
+        <li><time>2026-06-13</time> - Mark popup/session companion direction as superseded by the PiP-only product pivot</li>
+        <li><time>2026-06-13</time> - Update state model for no-lyrics, Plex lyric load error, and lyrics-control missing statuses</li>
         <li><time>2026-06-06</time> - Polish temporary-load feedback: replace Find Plex with Open/Focus Plex behavior and keep Phase 9 smoke testing open</li>
         <li><time>2026-06-06</time> - Implement MV3 session-state overhaul through Phase 8; leave final live smoke testing open</li>
         <li><time>2026-06-06</time> - Lock Q5 to Plex-native integration</li>
@@ -60,6 +62,8 @@
       <span class="pill pill-teal">UX First</span>
     </div>
     <p class="sub">Task plan for transforming the extension from a timer-driven auto-clicker into a trustworthy lyrics companion for side-screen Plex music listening.</p>
+
+    <div class="warn"><strong>Superseded:</strong> this plan documents the MV3 popup/session companion overhaul that was implemented locally, but the product has since pivoted to a PiP-only mode. The active direction lives in <a href="/projects/plex-lyrics/task-plan-lyrics-pip.html">Lyrics PiP Research &amp; Build Plan</a>; popup, background session state, toolbar badge automation, and standalone keep-open behavior should not be revived without a new decision.</div>
 
     <hr />
 
@@ -405,7 +409,7 @@
       <tbody>
         <tr>
           <td class="svc">State header</td>
-          <td><code>Keeping lyrics open</code>, <code>Paused by you</code>, <code>Lyrics unavailable</code>, or <code>Waiting for Plex</code>.</td>
+          <td><code>Keeping lyrics open</code>, <code>Paused by you</code>, <code>No lyrics for this song</code>, <code>Plex could not load lyrics</code>, or <code>Waiting for Plex</code>.</td>
           <td>One glance should answer whether the extension is doing anything.</td>
         </tr>
         <tr>
@@ -441,6 +445,7 @@
         <tr><td class="svc"><code>pausedByUser</code></td><td>Paused</td><td>Pause</td><td>Resume lyrics</td></tr>
         <tr><td class="svc"><code>waitingForPlex</code></td><td>Open Plex Music to start</td><td>Wait</td><td>Open Plex</td></tr>
         <tr><td class="svc"><code>lyricsUnavailable</code></td><td>No lyrics for this track</td><td>On</td><td>Keep watching</td></tr>
+        <tr><td class="svc"><code>lyricsError</code></td><td>Plex could not load lyrics / Cannot read Plex lyrics</td><td>Error</td><td>Check again</td></tr>
       </tbody>
     </table>
 
@@ -658,14 +663,20 @@
         </tr>
         <tr>
           <td class="svc"><code>lyricsUnavailable</code></td>
-          <td>Plex indicates no lyrics button or no lyrics for the current track.</td>
+          <td>Plex indicates no lyrics for the current track.</td>
           <td>Stay active but quiet. Recheck on track change.</td>
           <td>Track change, Stop, or manual pause.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>lyricsError</code></td>
+          <td>Plex reports an error loading lyrics, or the extension cannot find Plex's lyrics control after the startup grace period.</td>
+          <td>Stay active but quiet. Distinguish Plex's load error from a control-detection problem.</td>
+          <td>Track change, Check again, Stop, or manual pause.</td>
         </tr>
       </tbody>
     </table>
 
-    <div class="note">Implementation detail: content responses should become explicit statuses such as <code>clicked</code>, <code>already-visible</code>, <code>manual-close-detected</code>, <code>button-missing</code>, and <code>lyrics-unavailable</code>. The current unconditional <code>clicked</code> response hides useful product state.</div>
+    <div class="note">Implementation detail: content responses now include explicit statuses such as <code>clicked</code>, <code>already-visible</code>, <code>manual-close-detected</code>, <code>lyrics-unavailable</code>, <code>lyrics-load-error</code>, and <code>lyrics-control-missing</code>. This keeps Plex-side lyric failures distinct from extension-side detection failures.</div>
 
     <div class="section-notes">
       <label for="notes-state-model">Notes - State Model</label>
@@ -686,7 +697,9 @@
         <tr><td>Resume after manual close</td><td>Lyrics open again and session returns to active.</td></tr>
         <tr><td>Track changes while active</td><td>Lyrics open for the new track without repeated clicks.</td></tr>
         <tr><td>Track changes while paused by manual close</td><td>Lyrics remain closed until Resume.</td></tr>
-        <tr><td>No lyrics available for a track</td><td>No error loop; popup explains the track has no lyrics or the button is unavailable.</td></tr>
+        <tr><td>No lyrics available for a track</td><td>No error loop; popup explains that Plex has no lyrics for the song and keeps watching for the next track.</td></tr>
+        <tr><td>Plex says lyrics failed to load</td><td>No error loop; popup/toast says <code>Plex could not load lyrics</code> and clarifies that the error came from Plex.</td></tr>
+        <tr><td>Lyrics control disappears after grace period</td><td>Popup/toast says <code>Cannot read Plex lyrics</code>, pointing to a Plex UI or selector issue rather than a song availability problem.</td></tr>
         <tr><td>Multiple Plex tabs</td><td>Either target the active audible Plex tab or clearly list multi-tab behavior in the popup.</td></tr>
         <tr><td>Browser restart or extension reload</td><td>Stored state restores honestly; no surprise auto-click unless a previous active session is intentionally resumed.</td></tr>
         <tr><td>MV3 background wakes after being suspended</td><td>Session state rehydrates from storage, badge state is restored, and observer/fallback behavior resumes without duplicate clicks.</td></tr>

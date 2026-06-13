@@ -51,6 +51,8 @@
     <details class="changelog">
       <summary>Changelog</summary>
       <ul>
+        <li><time>2026-06-13</time> - Record marketplace packaging pass and app.plex.tv-only public match scope</li>
+        <li><time>2026-06-13</time> - Retire popup/session automation and make PiP the only active product mode</li>
         <li><time>2026-06-13</time> - Reserve real PiP header space and document size persistence limits</li>
         <li><time>2026-06-13</time> - Add compact now-playing and progress readout to the PiP header</li>
         <li><time>2026-06-13</time> - Fix auto-open selector so it cannot toggle the Timed Lyrics button</li>
@@ -130,7 +132,7 @@
         <tr>
           <td class="svc">Can the popup open it directly?</td>
           <td>Maybe, but the API requires transient user activation in the page context.</td>
-          <td>The robust path is an injected "Lyrics PiP" control inside Plex Web. The extension popup can focus Plex and guide the click.</td>
+          <td>The product path is now an injected "Lyrics PiP" control inside Plex Web. The toolbar icon stays passive rather than hosting a second control surface.</td>
         </tr>
         <tr>
           <td class="svc">Can Plex provide enough lyric state?</td>
@@ -251,7 +253,7 @@
       </tbody>
     </table>
 
-    <div class="note"><strong>Current spike:</strong> <code>pip-page.js</code> now injects a real <code>Lyrics PiP</code> button into Plex Web from the page realm, calls <code>window.documentPictureInPicture.requestWindow()</code> from that trusted click, keeps Plex's lyrics panel open while PiP is active, snapshots only the Plex lyrics DOM in memory, renders a portrait karaoke-style PiP window, bridges PiP previous/play-pause/next controls back to Plex's page controls, shows optional Media Session title/artist plus media-element progress, and restores the last saved PiP viewport size. <code>content.js</code> remains the isolated extension companion/session script.</div>
+    <div class="note"><strong>Current spike:</strong> <code>pip-page.js</code> now injects a real <code>Lyrics PiP</code> button into Plex Web from the page realm, calls <code>window.documentPictureInPicture.requestWindow()</code> from that trusted click, keeps Plex's lyrics panel open while PiP is active, snapshots only the Plex lyrics DOM in memory, renders a portrait karaoke-style PiP window, bridges PiP previous/play-pause/next controls back to Plex's page controls, shows optional Media Session title/artist plus media-element progress, and restores the last saved PiP viewport size. The old popup/background companion session has been removed.</div>
 
     <div class="section-notes">
       <label for="notes-live-spike">Notes - Live Spike Findings</label>
@@ -375,9 +377,9 @@
         </tr>
         <tr>
           <td class="svc">Popup/window fallback</td>
-          <td>Extension popup or normal floating browser window.</td>
+          <td>Normal floating browser window or in-page unsupported-browser message.</td>
           <td>Not always on top, less magical.</td>
-          <td>Development fallback and unsupported browser messaging.</td>
+          <td>Development fallback and unsupported browser messaging. Do not revive the old keep-open popup as a second product mode.</td>
         </tr>
       </tbody>
     </table>
@@ -415,7 +417,7 @@
         <tr>
           <td class="svc">Chrome Web Store</td>
           <td>Chrome requires clear disclosure, narrow permissions, unique value, and no misleading behavior or IP infringement.</td>
-          <td>Single purpose: "show Plex Web lyrics in PiP." Host permissions limited to Plex Web and self-hosted <code>/web/</code> only if defensible. No remote code. Privacy policy required if handling any user data.</td>
+          <td>Single purpose: "show Plex Web lyrics in PiP." Public package matches only <code>https://app.plex.tv/*</code>, has no <code>host_permissions</code> key, and includes no remote code. Privacy copy states local display only and no data transmission.</td>
         </tr>
         <tr>
           <td class="svc">Firefox AMO</td>
@@ -890,7 +892,7 @@
     <hr />
 
     <h2 id="architecture">Architecture</h2>
-    <p>The current extension already has a good spine: popup, MV3 background/session state, content script, Plex page observation, and toast. PiP should extend that spine rather than replacing it.</p>
+    <p>The current extension is now PiP-first: a minimal MV3 manifest injects <code>lyrics-status.js</code> and <code>pip-page.js</code> into Plex Web, and the toolbar action is passive. The old popup, background session coordinator, toolbar badge state, and standalone keep-open content script have been removed.</p>
 
     <table class="svc-table">
       <thead><tr><th>Module</th><th>Responsibility</th><th>Implementation Notes</th></tr></thead>
@@ -898,7 +900,7 @@
         <tr>
           <td class="svc"><code>pip-page.js</code> lyrics extractor</td>
           <td>Find Plex lyrics container, read visible lines, identify active line, detect plain/timed/no-lyrics states.</td>
-          <td>Runs in the page realm so it can share origin with the Document PiP window. Use structured DOM observation. When PiP is open, throttle-click Plex's lyrics button if the source lyrics panel is closed. Never send lyric text to background.</td>
+          <td>Runs in the page realm so it can share origin with the Document PiP window. Use structured DOM observation. When PiP is open, throttle-click Plex's lyrics button if the source lyrics panel is closed. Never send lyric text out of the page/PiP runtime.</td>
         </tr>
         <tr>
           <td class="svc"><code>pip-page.js</code> PiP controller</td>
@@ -916,19 +918,19 @@
           <td>Persist only <code>{width,height}</code> as a UI preference. Set <code>preferInitialWindowPlacement: false</code> so the browser can remember placement. Position cannot be set by the page.</td>
         </tr>
         <tr>
+          <td class="svc"><code>lyrics-status.js</code></td>
+          <td>Classify Plex no-lyrics and lyric load-error states.</td>
+          <td>Loaded before <code>pip-page.js</code> in the same page world and covered by focused Node tests.</td>
+        </tr>
+        <tr>
           <td class="svc">Injected in-page control</td>
           <td>Expose "Lyrics PiP" where activation works and where the user understands the action.</td>
           <td>Keep tiny, Plex-adjacent, and opt-in. The current spike renders a fixed chip near the Plex player controls.</td>
         </tr>
         <tr>
-          <td class="svc"><code>background.js</code></td>
-          <td>Track feature availability and session state, but not lyric bodies.</td>
-          <td>Store booleans/status only: PiP supported, PiP open, source tab ID, last event. Do not persist lyrics.</td>
-        </tr>
-        <tr>
-          <td class="svc"><code>popup.js</code></td>
-          <td>Show PiP availability and guide the user to the activation surface.</td>
-          <td>If direct open fails or is impossible, primary action focuses Plex and reveals the in-page control.</td>
+          <td class="svc"><code>manifest.json</code></td>
+          <td>Keep the package narrow and reviewable.</td>
+          <td>No extension API permissions, no background script, no popup, no toolbar click behavior, and no static <code>host_permissions</code> key. Public package content-script access is limited to <code>https://app.plex.tv/*</code>.</td>
         </tr>
         <tr>
           <td class="svc">Optional renderer split</td>
@@ -989,7 +991,7 @@
       </div>
       <div class="step">
         <div class="step-title">Phase 5 - Control surface integration</div>
-        <p>Add the in-Plex "Open Lyrics PiP" chip and popup guidance. Keep the control opt-in, unobtrusive, and state-aware. Verify it does not fight the existing keep-lyrics-open session model. Status: in-page chip exists; PiP header now includes previous/play-pause/next controls, a compact now-playing readout, and a progress bar that bridge/read from Plex's own page state.</p>
+        <p>Add the in-Plex "Open Lyrics PiP" chip and remove the old popup guidance/session mode. Keep the control opt-in, unobtrusive, and state-aware. Status: in-page chip exists; PiP header now includes previous/play-pause/next controls, a compact now-playing readout, and a progress bar that bridge/read from Plex's own page state. The old popup, background, badge, and standalone keep-open content script have been removed.</p>
       </div>
       <div class="step">
         <div class="step-title">Phase 6 - Accessibility and performance polish</div>
@@ -1029,11 +1031,11 @@
         <tr><td>Plain lyrics only</td><td>PiP switches to plain reading mode and does not imply live sync.</td></tr>
         <tr><td>No lyrics for track</td><td>PiP shows a calm availability state and keeps watching for the next track.</td></tr>
         <tr><td>Track changes</td><td>Old lyric lines disappear quickly; Plex lyrics reopen automatically if the source panel closes, and new lyrics replace the old display without persisting history.</td></tr>
-        <tr><td>Manual close of Plex lyrics</td><td>When PiP is open, the PiP mode treats Plex lyrics as its required source panel and may reopen them. Closing PiP stops that behavior; the standalone companion session should still respect manual close.</td></tr>
+        <tr><td>Manual close of Plex lyrics</td><td>When PiP is open, the PiP mode treats Plex lyrics as its required source panel and may reopen them. Closing PiP stops that behavior; there is no separate companion session to resume or pause.</td></tr>
         <tr><td>Source tab closes or navigates</td><td>PiP closes or shows a source-lost state without keeping stale lyrics indefinitely.</td></tr>
         <tr><td>Multiple Plex tabs</td><td>Targets audible or active tab consistently and identifies the source tab in status.</td></tr>
-        <tr><td>Unsupported browser</td><td>Popup and in-page chip explain that Lyrics PiP is not available; no broken buttons.</td></tr>
-        <tr><td>Store review package</td><td>Reviewer instructions include Plex Web setup, lyric availability caveats, no-data-transmission statement, and fake lyric screenshots.</td></tr>
+        <tr><td>Unsupported browser</td><td>The in-page chip explains that Lyrics PiP is not available; no broken buttons or misleading toolbar popup.</td></tr>
+        <tr><td>Store review package</td><td>Reviewer instructions include Plex Web setup, lyric availability caveats, no-data-transmission statement, app.plex.tv-only scope, and fake lyric screenshots.</td></tr>
       </tbody>
     </table>
 
@@ -1041,7 +1043,7 @@
     <table class="svc-table">
       <thead><tr><th>Check</th><th>Status Before Public Release</th></tr></thead>
       <tbody>
-        <tr><td>Permissions</td><td>Only Plex Web host permissions and necessary extension APIs.</td></tr>
+        <tr><td>Permissions</td><td>No extension API permissions, no <code>host_permissions</code> key, and content-script access limited to <code>https://app.plex.tv/*</code>.</td></tr>
         <tr><td>Privacy policy</td><td>States local processing, no lyric storage, no analytics unless explicitly added later.</td></tr>
         <tr><td>Source code</td><td>Reviewable, no obfuscation, no remote code.</td></tr>
         <tr><td>Branding</td><td>Unofficial wording, no Plex logo, no confusing store metadata.</td></tr>
