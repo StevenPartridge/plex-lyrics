@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lyrics PiP Research &amp; Build Plan - Task Plan</title>
+  <link rel="stylesheet" href="/shared/wiki.css" />
+  <link rel="stylesheet" media="print" href="/shared/print.css" />
+</head>
+<body>
+<div id="wiki-nav"></div>
+<div class="layout">
+
+  <nav class="sidebar">
+    <div>Lyrics PiP Plan</div>
+    <div class="s-head">Sections</div>
+    <a href="#scope">Scope</a>
+    <a href="#research">Research Snapshot</a>
+    <a href="#live-spike">Live Spike Findings</a>
+    <a href="#market">Market Research</a>
+    <a href="#compatibility">Browser Compatibility</a>
+    <a href="#policy">Terms &amp; Store Review</a>
+    <a href="#design">Design Direction</a>
+    <a href="#decisions">Key Decisions</a>
+    <a href="#mockups">Mockups</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#steps">Step Plan</a>
+    <a href="#qa">QA &amp; Release</a>
+    <a href="#sources">Sources</a>
+    <div class="s-head">Plex Lyrics</div>
+    <a href="/projects/plex-lyrics/">Project Home</a>
+    <a href="/projects/plex-lyrics/task-plan-interface-overhaul.html">Interface Overhaul</a>
+    <a href="/projects/">Projects</a>
+    <a href="/">Wiki Home</a>
+  </nav>
+
+  <div class="main">
+    <div class="breadcrumb">
+      <a href="/">Wiki</a> &rsaquo; <a href="/projects/">Projects</a> &rsaquo; <a href="/projects/plex-lyrics/">Plex Lyrics Companion</a> &rsaquo; Lyrics PiP Research &amp; Build Plan
+    </div>
+
+    <div id="wiki-meta"
+      data-file-path="/projects/plex-lyrics/task-plan-lyrics-pip.html"
+      data-fs-path="/Users/steven/dev/plex-lyrics/wiki/task-plan-lyrics-pip.html"
+      data-tags="plex,lyrics,picture-in-picture,task-plan,ux,research,extension,compliance"
+      data-created="2026-06-13"
+      data-updated="2026-06-13"
+      data-state="planning">
+    </div>
+
+    <details class="changelog">
+      <summary>Changelog</summary>
+      <ul>
+        <li><time>2026-06-13</time> - Reserve real PiP header space and document size persistence limits</li>
+        <li><time>2026-06-13</time> - Add compact now-playing and progress readout to the PiP header</li>
+        <li><time>2026-06-13</time> - Fix auto-open selector so it cannot toggle the Timed Lyrics button</li>
+        <li><time>2026-06-13</time> - Add PiP-owned auto-open behavior for Plex lyrics across song changes</li>
+        <li><time>2026-06-13</time> - Record successful Zen PiP proof and polish pass for smoother lyric transitions plus playback controls</li>
+        <li><time>2026-06-13</time> - Record Zen SecurityError result and move PiP controller plan to page-world script</li>
+        <li><time>2026-06-13</time> - Implement first portrait Document PiP spike and replace mockups with chosen Karaoke Desk design</li>
+        <li><time>2026-06-13</time> - Lock Q-card decisions and pivot PiP design toward portrait Karaoke Desk</li>
+        <li><time>2026-06-13</time> - Add live Plex timed-lyrics DOM spike findings</li>
+        <li><time>2026-06-13</time> - Initial research-backed task plan for a Plex lyrics Picture-in-Picture companion</li>
+      </ul>
+    </details>
+
+    <div class="h1-row">
+      <h1>Lyrics PiP Research &amp; Build Plan</h1>
+      <span class="pill pill-gold">Research</span>
+      <span class="pill pill-blue">UX Heavy</span>
+      <span class="pill pill-teal">Release Risk Review</span>
+    </div>
+    <p class="sub">Task plan for turning Plex's currently available lyrics into a beautiful always-on-top Picture-in-Picture lyric companion without fetching, storing, or redistributing lyrics from any other source.</p>
+
+    <hr />
+
+    <h2 id="scope">Scope</h2>
+    <p>The dream is not a lyric scraper and not a replacement lyrics service. It is a local mirror of the lyric experience Plex already shows to the user: the same available lyrics, the same timed-line behavior when Plex exposes it, rendered in a dedicated always-on-top window for side-screen listening.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Area</th><th>Plan</th><th>Reason</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Product promise</td>
+          <td>Open a focused PiP lyrics view while Plex Music keeps playing in the original tab.</td>
+          <td>Solves the "lyrics disappear when I navigate away" problem without changing the music source.</td>
+        </tr>
+        <tr>
+          <td class="svc">Lyrics source</td>
+          <td>Only mirror lyrics that Plex Web already displays or exposes in the current page.</td>
+          <td>Keeps the product inside the user's existing Plex/LyricFind entitlement instead of becoming a lyric distribution app.</td>
+        </tr>
+        <tr>
+          <td class="svc">Sync behavior</td>
+          <td>Observe Plex's highlighted current line if available; fall back to static lyric display if Plex only has plain lyrics.</td>
+          <td>Plex officially supports both timed and plain lyrics, so the UI must handle both gracefully.</td>
+        </tr>
+        <tr>
+          <td class="svc">Primary runtime</td>
+          <td>Document Picture-in-Picture for arbitrary HTML; classic video PiP only as a possible fallback.</td>
+          <td>Lyrics need real layout, text, resizing, and accessibility. Classic PiP is video-only.</td>
+        </tr>
+        <tr>
+          <td class="svc">Non-goals</td>
+          <td colspan="2">No lyric API scraping, no third-party lyric lookup, no saving full lyric bodies, no public lyric sharing, no Plex Pass bypass, no fake affiliation with Plex, LyricFind, or Musixmatch.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="tip"><strong>North star:</strong> make Plex Music feel like it gained an elegant floating lyric stage. The extension should be invisible as a data system and unmistakable as a local viewing aid.</div>
+
+    <div class="section-notes">
+      <label for="notes-scope">Notes - Scope</label>
+      <textarea id="notes-scope" placeholder="Scope changes, source boundaries, or non-goals to tighten..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="research">Research Snapshot</h2>
+    <p>Verdict: technically plausible, worth spiking, and potentially publishable if the release posture stays conservative. The riskiest areas are not PiP itself; they are lyrics rights, Plex terms, naming/branding, and browser-specific behavior in Firefox/Zen.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Question</th><th>Finding</th><th>Implication</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Can arbitrary lyrics HTML live in PiP?</td>
+          <td>Yes where Document Picture-in-Picture exists. MDN describes an always-on-top window populated with arbitrary HTML, unlike video-only PiP.</td>
+          <td>Build the real experience in HTML first, with text semantics and responsive layout.</td>
+        </tr>
+        <tr>
+          <td class="svc">Can the popup open it directly?</td>
+          <td>Maybe, but the API requires transient user activation in the page context.</td>
+          <td>The robust path is an injected "Lyrics PiP" control inside Plex Web. The extension popup can focus Plex and guide the click.</td>
+        </tr>
+        <tr>
+          <td class="svc">Can Plex provide enough lyric state?</td>
+          <td>Plex's support docs say Plex Web supports LyricFind lyrics and timed lyrics highlight the current line as the song progresses.</td>
+          <td>First spike must map the actual DOM for line text, active-line class, track changes, and no-lyrics states.</td>
+        </tr>
+        <tr>
+          <td class="svc">Is this a clean store submission?</td>
+          <td>It can be if it is single-purpose, transparent, local-only, permission-minimal, and non-infringing.</td>
+          <td>Ship with a privacy policy, no analytics by default, no remote code, and clear "not affiliated" wording.</td>
+        </tr>
+        <tr>
+          <td class="svc">Is this clean under Plex terms?</td>
+          <td>Not guaranteed. Plex acknowledges third-party "Interfacing Software" but restricts modification, derivative use, content copying, and unauthorized sharing.</td>
+          <td>Personal/local mirror is the lowest-risk interpretation. Public release needs a preflight legal/terms review and possibly Plex contact.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="warn"><strong>Release gate:</strong> do not market this as a lyric provider or Plex replacement. Do not persist or export lyric text. Do not use Plex logos or imply endorsement. This page is product/legal risk analysis, not legal advice.</div>
+
+    <div class="section-notes">
+      <label for="notes-research">Notes - Research Snapshot</label>
+      <textarea id="notes-research" placeholder="Research gaps, source corrections, or new feasibility notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="live-spike">Live Spike Findings</h2>
+    <p>Live Plex Web inspection on <time>2026-06-13</time> proved the timed-lyrics DOM is mirrorable without inventing lyric timing. Findings below intentionally avoid storing lyric text; the spike recorded selectors, classes, counts, text lengths, and playback timestamps only.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Area</th><th>Finding</th><th>Implementation Consequence</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">PiP API in in-app browser</td>
+          <td><code>window.documentPictureInPicture</code> and <code>requestWindow</code> were not exposed in the Codex in-app browser page context.</td>
+          <td>This browser can support DOM research, but not the final activation proof. Use Chrome or Zen control for the real Document PiP click test.</td>
+        </tr>
+        <tr>
+          <td class="svc">Lyrics button</td>
+          <td>Plex exposes <code>button[data-testid="lyricsButton"][aria-label="Lyrics"]</code>. When lyrics are open, the button includes Plex's selected link class.</td>
+          <td>The existing extension selector remains valid for opening and detecting the lyrics panel.</td>
+        </tr>
+        <tr>
+          <td class="svc">Timed lyrics toggle</td>
+          <td>Timed mode exposes <code>button[data-testid="toggleTimedLyrics"][aria-label="Timed Lyrics"]</code> and an active class matching <code>AudioVideoLyrics-isTimedLyricsActive-*</code>.</td>
+          <td>The extractor can distinguish timed mode from plain lyric display by checking the timed toggle state.</td>
+        </tr>
+        <tr>
+          <td class="svc">Lyrics container stack</td>
+          <td>The panel uses classes matching <code>AudioVideoLyrics-container-*</code>, <code>AudioVideoLyrics-content-*</code>, <code>AudioVideoLyrics-innerContent-*</code>, and <code>AudioVideoLyrics-scroller-*</code>.</td>
+          <td>Use prefix/contains selectors, not full hashed class names, and keep fallbacks because Plex may rebuild class hashes.</td>
+        </tr>
+        <tr>
+          <td class="svc">Line model</td>
+          <td>Timed lyrics are repeated <code>div[class*="AudioVideoLyrics-line-"]</code> rows. Text rows contain a child <code>span</code>; stanza breaks appear as empty line rows; each row can contain a timed icon SVG.</td>
+          <td>A snapshot can preserve lyric order, text rows, and stanza breaks. Use <code>span</code> text for display and empty rows as spacing markers.</td>
+        </tr>
+        <tr>
+          <td class="svc">Active line signal</td>
+          <td>The live current line adds a class matching <code>AudioVideoLyrics-isLineSelected-*</code>. Its timed icon becomes visible. During playback, selected line indices advanced as audio time advanced.</td>
+          <td>This is the key sync proof: PiP can mirror Plex's active line directly instead of deriving timing from audio playback.</td>
+        </tr>
+        <tr>
+          <td class="svc">Playback surface</td>
+          <td>Plex creates a hidden <code>audio</code> element with class matching <code>HTMLMedia-mediaElement-*</code>. Player buttons expose stable test IDs such as <code>resumeButton</code>, <code>pauseButton</code>, and <code>lyricsButton</code>.</td>
+          <td>The extractor can observe playback state for diagnostics, but should not depend on audio analysis for lyric sync.</td>
+        </tr>
+        <tr>
+          <td class="svc">Now-playing surface</td>
+          <td>Plex can expose current track title and artist through <code>navigator.mediaSession.metadata</code>, while the page media element exposes <code>currentTime</code> and <code>duration</code>.</td>
+          <td>The PiP header can show a compact title/artist readout and track progress using session-only browser state. Treat metadata as optional and never persist it.</td>
+        </tr>
+        <tr>
+          <td class="svc">PiP sizing and placement</td>
+          <td>Document PiP allows requested <code>width</code> and <code>height</code>, and MDN documents that the browser remembers previous size and position by default. The page cannot set the PiP window position.</td>
+          <td>Save only a UI-size preference as <code>{width,height}</code> and rely on the browser for last-position restoration. Do not attempt to store or set screen coordinates.</td>
+        </tr>
+        <tr>
+          <td class="svc">Remaining DOM gaps</td>
+          <td>Only a timed LyricFind case was mapped in this spike. Plain lyrics, no-lyrics, track change, and page-navigation behavior still need live mapping.</td>
+          <td>Phase 2 is partially complete, not done. Build extractor cases around timed lyrics first, then validate fallback states.</td>
+        </tr>
+        <tr>
+          <td class="svc">Zen PiP realm result</td>
+          <td>Temporary Zen testing reached the Document PiP path, but the isolated extension content script could not access the returned PiP window document and repeatedly threw <code>SecurityError: Permission denied to access property "document" on cross-origin object</code>, followed by dead-object errors after teardown.</td>
+          <td>Do not hold the PiP window from the isolated extension script. The spike now uses a separate <code>pip-page.js</code> content script in <code>world: "MAIN"</code> so the PiP controller, snapshotter, and renderer run in Plex's page realm.</td>
+        </tr>
+        <tr>
+          <td class="svc">Zen page-world proof</td>
+          <td>Temporary Zen testing confirmed the page-world Document PiP path works well: timing mirrors Plex's active line and the portrait layout is close to target.</td>
+          <td>Proceed to final testing. Polish pass keeps lyric DOM nodes stable between active-line changes, slows custom scroll animation, reserves active-line marker space to reduce flashing, and adds previous/play-pause/next controls in the PiP header.</td>
+        </tr>
+        <tr>
+          <td class="svc">Lyrics panel persistence</td>
+          <td>When the PiP window is open, <code>pip-page.js</code> now checks whether Plex's own lyrics panel is visible and clicks Plex's lyrics button if it is closed.</td>
+          <td>This should reopen lyrics automatically after song changes while keeping Plex as the only lyric source. The click is throttled to avoid rapid retry loops during track loading or unavailable-lyrics states.</td>
+        </tr>
+        <tr>
+          <td class="svc">Auto-open selector regression</td>
+          <td>The first persistence pass used a broad <code>aria-label*="Lyrics"</code> fallback, which also matched Plex's <code>Timed Lyrics</code> toggle and caused timed mode to flip on and off during instrumental sections.</td>
+          <td>Main lyrics-button lookup must prefer <code>data-testid="lyricsButton"</code> and only accept an exact <code>aria-label="Lyrics"</code>. Do not use contains-match lyric selectors for auto-click targets.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Extractor Selector Draft</h3>
+    <table class="svc-table">
+      <thead><tr><th>Purpose</th><th>Selector / Check</th></tr></thead>
+      <tbody>
+        <tr><td class="svc">Lyrics open</td><td><code>[data-testid="lyricsButton"]</code> or exact <code>aria-label="Lyrics"</code> plus selected/pressed state checks. Never use <code>aria-label*="Lyrics"</code> for auto-clicking because it can match <code>Timed Lyrics</code>.</td></tr>
+        <tr><td class="svc">Timed mode</td><td><code>[data-testid="toggleTimedLyrics"]</code> and <code>[class*="AudioVideoLyrics-isTimedLyricsActive"]</code>.</td></tr>
+        <tr><td class="svc">Scroller</td><td><code>[class*="AudioVideoLyrics-scroller"]</code>.</td></tr>
+        <tr><td class="svc">Lyric rows</td><td><code>div[class*="AudioVideoLyrics-line-"]</code> scoped inside the scroller.</td></tr>
+        <tr><td class="svc">Current line</td><td><code>div[class*="AudioVideoLyrics-isLineSelected"]</code> scoped inside the scroller.</td></tr>
+        <tr><td class="svc">Line text</td><td>First child <code>span</code> text only; keep text in memory and never write full lyrics to extension storage or logs.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note"><strong>Current spike:</strong> <code>pip-page.js</code> now injects a real <code>Lyrics PiP</code> button into Plex Web from the page realm, calls <code>window.documentPictureInPicture.requestWindow()</code> from that trusted click, keeps Plex's lyrics panel open while PiP is active, snapshots only the Plex lyrics DOM in memory, renders a portrait karaoke-style PiP window, bridges PiP previous/play-pause/next controls back to Plex's page controls, shows optional Media Session title/artist plus media-element progress, and restores the last saved PiP viewport size. <code>content.js</code> remains the isolated extension companion/session script.</div>
+
+    <div class="section-notes">
+      <label for="notes-live-spike">Notes - Live Spike Findings</label>
+      <textarea id="notes-live-spike" placeholder="Selector drift, additional tracks, plain/no-lyrics findings, or PiP activation results..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="market">Market Research</h2>
+    <p>Lyrics have moved from "nice extra" to core music UX. Apple positions real-time lyrics and Sing as an immersive listening feature. Spotify explicitly supports lyrics across free and Premium tiers, with availability varying by rights and device. Plex already has the raw ingredient, but its web experience is tied to the Plex tab and layout.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Market Signal</th><th>What Users Now Expect</th><th>Opportunity for This Extension</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Apple Music Sing</td>
+          <td>Animated real-time lyrics, translations/pronunciations, duet view, and a TV-friendly big-screen lyric mode.</td>
+          <td>Make the PiP feel premium: large readable current line, dim context lines, smooth movement, and a stage mode that works across the desk.</td>
+        </tr>
+        <tr>
+          <td class="svc">Spotify Lyrics</td>
+          <td>Lyrics are expected in mainstream music apps, though availability depends on markets, devices, and rights holders.</td>
+          <td>Be honest about availability. If Plex has no lyrics, the extension should say so beautifully instead of looking broken.</td>
+        </tr>
+        <tr>
+          <td class="svc">Plex LyricFind</td>
+          <td>Plex Pass users can get plain and timed lyrics from LyricFind on supported apps, including Plex Web.</td>
+          <td>The extension can win by presentation, not supply. It mirrors Plex's entitlement into a better multitasking surface.</td>
+        </tr>
+        <tr>
+          <td class="svc">Desktop multitasking</td>
+          <td>Users want music context while working in other tabs or apps, especially on side screens and ultrawide displays.</td>
+          <td>PiP is a better mental model than a popup because it stays visible, user-positioned, and lightweight.</td>
+        </tr>
+        <tr>
+          <td class="svc">Licensed lyric ecosystem</td>
+          <td>Lyrics are rights-managed content. Lyric providers exist because display and distribution rights matter.</td>
+          <td>Never become a shadow lyric database. Local-only, session-only display is a strategic constraint, not a compromise.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3>User Jobs</h3>
+        <p><strong>Work mode:</strong> keep the current line readable while coding, browsing, or writing. <strong>Side-screen mode:</strong> turn a spare monitor into a quiet lyric panel. <strong>Sing-along mode:</strong> make Plex's timed lyrics feel closer to karaoke without adding microphone, scoring, or third-party data.</p>
+      </div>
+      <div class="col-card">
+        <h3>Positioning</h3>
+        <p>The best store positioning is "a Picture-in-Picture viewer for lyrics already available in Plex Web." The worst positioning is "get lyrics for Plex" because that sounds like content acquisition and rights handling.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-market">Notes - Market Research</label>
+      <textarea id="notes-market" placeholder="Competitors, store search terms, user segments, or positioning adjustments..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="compatibility">Browser Compatibility</h2>
+    <p>Document Picture-in-Picture is the right API, but it is still limited availability. Browser support must be treated as a product requirement, not a footnote.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Browser / Platform</th><th>Document PiP</th><th>Classic Video PiP</th><th>Plan</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Chrome desktop</td>
+          <td><span class="pill pill-green">Supported from 116</span></td>
+          <td><span class="pill pill-green">Supported</span></td>
+          <td>Primary Chromium implementation target. Test with Chrome stable and current Chromium-based Edge.</td>
+        </tr>
+        <tr>
+          <td class="svc">Edge desktop</td>
+          <td><span class="pill pill-green">Supported from 116</span></td>
+          <td><span class="pill pill-green">Supported</span></td>
+          <td>Should behave like Chromium; verify store package separately because policies and review are Chrome Web Store if published there.</td>
+        </tr>
+        <tr>
+          <td class="svc">Firefox desktop</td>
+          <td><span class="pill pill-blue">Listed from 151</span></td>
+          <td><span class="pill pill-green">Supported for video</span></td>
+          <td>Critical smoke test. If Zen/Firefox does not expose Document PiP in extension content scripts, either defer public Firefox PiP or build a canvas/video fallback.</td>
+        </tr>
+        <tr>
+          <td class="svc">Zen Browser</td>
+          <td><span class="pill pill-gold">Must test</span></td>
+          <td><span class="pill pill-gold">Must test</span></td>
+          <td>Project's real target. Use temporary loading first because previous direct MV3 profile package work crashed Zen.</td>
+        </tr>
+        <tr>
+          <td class="svc">Safari desktop</td>
+          <td><span class="pill pill-dim">Not supported</span></td>
+          <td><span class="pill pill-green">Video PiP exists</span></td>
+          <td>No Safari extension target for this phase. Do not promise Safari support.</td>
+        </tr>
+        <tr>
+          <td class="svc">Mobile browsers</td>
+          <td><span class="pill pill-dim">Out of scope</span></td>
+          <td><span class="pill pill-dim">Platform-dependent</span></td>
+          <td>Skip. Plex mobile apps already have their own lyric surfaces, and extension support is constrained.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Fallback Strategy</h3>
+    <table class="svc-table">
+      <thead><tr><th>Path</th><th>Experience</th><th>Cost</th><th>When to Use</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Document PiP</td>
+          <td>Real HTML, selectable-ish text, CSS layout, controls, accessibility semantics.</td>
+          <td>Best UX, limited support.</td>
+          <td>Default target.</td>
+        </tr>
+        <tr>
+          <td class="svc">Canvas to video PiP</td>
+          <td>Draw lyrics to a canvas, stream to hidden video, use video PiP.</td>
+          <td>More code, lower accessibility, no real DOM in PiP.</td>
+          <td>Only if Firefox/Zen lacks Document PiP but classic PiP works reliably.</td>
+        </tr>
+        <tr>
+          <td class="svc">Popup/window fallback</td>
+          <td>Extension popup or normal floating browser window.</td>
+          <td>Not always on top, less magical.</td>
+          <td>Development fallback and unsupported browser messaging.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">The first technical spike now targets the exact call site: an injected Plex-page button calling <code>window.documentPictureInPicture.requestWindow()</code> from a trusted click. The remaining compatibility question is whether Zen accepts the manifest <code>world: "MAIN"</code> page-realm path for this MV3 temporary add-on.</div>
+
+    <div class="section-notes">
+      <label for="notes-compatibility">Notes - Browser Compatibility</label>
+      <textarea id="notes-compatibility" placeholder="Browser versions, Zen findings, fallback test results, or compatibility corrections..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="policy">Terms &amp; Store Review</h2>
+    <p>The extension-store story is manageable. The Plex/content-rights story is the sharper edge. The release plan should be conservative until the feature has a working local proof and the exact behavior is easy to describe.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Policy Area</th><th>Risk</th><th>Release-Safe Posture</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Plex terms</td>
+          <td>Plex permits some "Interfacing Software" but restricts modification, derivative use, security circumvention, unauthorized content use, and further distribution of content.</td>
+          <td>Do not call APIs outside normal Plex Web behavior. Do not bypass Plex Pass or region availability. Do not store, export, transmit, or share lyric text. Treat the PiP as an alternate local viewport.</td>
+        </tr>
+        <tr>
+          <td class="svc">Lyrics rights</td>
+          <td>LyricFind content is licensed and geographically constrained. Lyrics are text content, not neutral metadata.</td>
+          <td>Mirror only what Plex already renders to the authenticated user. Avoid screenshots in store listings that show copyrighted lyric text; use fake placeholder lyrics in screenshots.</td>
+        </tr>
+        <tr>
+          <td class="svc">Branding</td>
+          <td>Using "Plex" too prominently can imply affiliation; using logos or trade dress increases risk.</td>
+          <td>Use clear unofficial wording: "Lyrics PiP for Plex Web" or "Lyrics Companion for Plex Web", with "not affiliated with Plex" in listing and first-run copy. Avoid Plex logo assets.</td>
+        </tr>
+        <tr>
+          <td class="svc">Chrome Web Store</td>
+          <td>Chrome requires clear disclosure, narrow permissions, unique value, and no misleading behavior or IP infringement.</td>
+          <td>Single purpose: "show Plex Web lyrics in PiP." Host permissions limited to Plex Web and self-hosted <code>/web/</code> only if defensible. No remote code. Privacy policy required if handling any user data.</td>
+        </tr>
+        <tr>
+          <td class="svc">Firefox AMO</td>
+          <td>Mozilla requires no surprises, reviewable code, necessary permissions only, no remote code, and clear data-transmission control.</td>
+          <td>State "local only, no lyric transmission" prominently. Keep code plain/reviewable. Provide reviewer instructions and a Plex test setup note.</td>
+        </tr>
+        <tr>
+          <td class="svc">Privacy</td>
+          <td>Track titles and lyrics can reveal taste, mood, religion, politics, health context, and household activity.</td>
+          <td>No analytics by default. Do not collect song, artist, server, or lyric text. Store only UI preferences and feature state.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="danger"><strong>Public release blocker:</strong> if any implementation copies full lyrics into extension storage, sync storage, logs, telemetry, screenshots, crash reports, or external services, stop and redesign before publishing.</div>
+
+    <h3>Store Listing Guardrails</h3>
+    <table class="svc-table">
+      <thead><tr><th>Do</th><th>Avoid</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Say it works only with lyrics already available in Plex Web.</td>
+          <td>Do not say "adds lyrics to Plex" or "unlocks lyrics".</td>
+        </tr>
+        <tr>
+          <td>Use placeholder lyric text in screenshots and demos.</td>
+          <td>Do not show copyrighted lyric excerpts in promotional images.</td>
+        </tr>
+        <tr>
+          <td>Explain Plex Pass / region / track availability caveats.</td>
+          <td>Do not promise lyrics for every song.</td>
+        </tr>
+        <tr>
+          <td>State "not affiliated with or endorsed by Plex" plainly.</td>
+          <td>Do not use Plex logos, official product screenshots with copyrighted content, or store metadata that looks official.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-policy">Notes - Terms &amp; Store Review</label>
+      <textarea id="notes-policy" placeholder="Legal review, store feedback, naming risks, or privacy-policy requirements..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="design">Design Direction</h2>
+    <p>The PiP should feel like a portrait phone-shaped karaoke panel: roughly a third to half of a 1080px-tall display by default, user-resizable, and visually focused almost entirely on lyrics. It should not carry album cards or big metadata chrome; the header can hold only essential playback controls, a tiny now-playing/progress readout, and the on-color close button. Header controls must reserve real layout space so lyrics never scroll behind them.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Design Principle</th><th>Execution</th><th>Why It Matters</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Portrait lyric viewport</td>
+          <td>Use a phone-like portrait aspect as the default. Show a slice of the song, not the whole lyric sheet.</td>
+          <td>The user wants a compact always-on-top panel that feels like a lyric screen, not a dashboard.</td>
+        </tr>
+        <tr>
+          <td class="svc">Karaoke scroll behavior</td>
+          <td>The active line marches down until around the middle of the viewport, then the lyric list scrolls upward; near the end, the active line can march toward the bottom.</td>
+          <td>This follows familiar karaoke behavior and avoids reinventing line timing or motion language.</td>
+        </tr>
+        <tr>
+          <td class="svc">Plex-adjacent, not Plex-clone</td>
+          <td>Dark surface, warm gold active-line accent, no Plex marks, minimal metadata.</td>
+          <td>It should belong near Plex without implying official ownership.</td>
+        </tr>
+        <tr>
+          <td class="svc">Lyrics availability is a state</td>
+          <td>Synced lyrics auto-scroll. Plain lyrics remain user-scrollable. No-lyrics and lost-source states use calm plain copy.</td>
+          <td>Rights and metadata variability are normal. The UI should explain them without blame.</td>
+        </tr>
+        <tr>
+          <td class="svc">Low-noise controls</td>
+          <td>Keep previous/play-pause/next, a small title/progress strip, and an on-color close button in a compact header.</td>
+          <td>Lyrics are the content. Controls and playback context should be available without shouting over the active line.</td>
+        </tr>
+        <tr>
+          <td class="svc">Accessible separation</td>
+          <td>Use a real header row above the lyric scroller rather than absolutely positioning controls over lyrics.</td>
+          <td>Text remains readable at every scroll position, focus outlines stay visible, and resize reflow never sacrifices lyric contrast.</td>
+        </tr>
+        <tr>
+          <td class="svc">Accessibility first</td>
+          <td>High contrast, reduced motion, keyboard-reachable controls, no color-only state.</td>
+          <td>Large always-on-top lyrics are an accessibility feature as much as a delight feature.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="two-col">
+      <div class="col-card">
+        <h3>Visual Ingredients</h3>
+        <p>Near-black panel, soft warm edge, dim surrounding lyrics, clear white active lyric, Plex-gold active marker, tiny track/progress readout, and a small gold close button. No album art unless a later iteration proves it helps.</p>
+      </div>
+      <div class="col-card">
+        <h3>Motion Rules</h3>
+        <p>Use standard karaoke movement: gentle line emphasis and smooth vertical scroll. No bouncing, flashing, or decorative motion. When reduced motion is requested, update with a simple opacity swap and instant scroll.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-design">Notes - Design Direction</label>
+      <textarea id="notes-design" placeholder="Design tone, interaction ideas, accessibility concerns, or polish notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="decisions">Key Decisions</h2>
+    <p>Decisions Q1-Q6 were locked from wiki feedback on 2026-06-13. The implementation target is a private Zen/Firefox-first spike using Document PiP, opened from an injected Plex-page control, with a portrait Karaoke Desk display and no official Plex marks.</p>
+
+    <h3>Resolved Decisions</h3>
+    <table class="svc-table">
+      <thead><tr><th>Decision</th><th>Choice</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Lyric source</td>
+          <td><span class="pill pill-green">Plex-provided only</span></td>
+          <td>No third-party lyric lookup, scraping, or LRC fetching in the first version.</td>
+        </tr>
+        <tr>
+          <td class="svc">Storage</td>
+          <td><span class="pill pill-green">Session-only lyric text</span></td>
+          <td>The extension may hold current lyrics in memory to render PiP, but must not persist lyric bodies.</td>
+        </tr>
+        <tr>
+          <td class="svc">Sync</td>
+          <td><span class="pill pill-green">Mirror Plex sync</span></td>
+          <td>If Plex exposes active-line state, mirror it. If not, do not invent timing from audio analysis.</td>
+        </tr>
+        <tr>
+          <td class="svc">Shipping sequence</td>
+          <td><span class="pill pill-green">Spike before polish</span></td>
+          <td>Prove API support and Plex DOM extraction before committing to full UI implementation.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q1 - PiP runtime</td>
+          <td><span class="pill pill-green">A - Document PiP first</span></td>
+          <td>Build the desired arbitrary-HTML experience first. Fallbacks wait until the real target is tested.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q2 - Browser target</td>
+          <td><span class="pill pill-green">A - Zen/Firefox first</span></td>
+          <td>Optimize for the user's actual browser and current extension path, even if compatibility is uncertain.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q3 - Release posture</td>
+          <td><span class="pill pill-green">A - Personal/private spike first</span></td>
+          <td>Use temporary loading and local testing before any store or public release work.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q4 - Entry surface</td>
+          <td><span class="pill pill-green">A - Injected Plex-page control</span></td>
+          <td>Put the user activation where Document PiP needs it: inside the Plex page.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q5 - Visual mode</td>
+          <td><span class="pill pill-green">C - Karaoke Desk</span></td>
+          <td>Default to a portrait phone-shaped lyric panel with familiar active-line scroll behavior.</td>
+        </tr>
+        <tr>
+          <td class="svc">Q6 - Branding</td>
+          <td><span class="pill pill-green">A - Plex-adjacent, no official marks</span></td>
+          <td>Use visual restraint and unofficial wording; do not use Plex logos or imply endorsement.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q1</div>
+        <div class="q-title">What runtime should the first implementation target?</div>
+      </div>
+      <p>This blocks the first technical spike and determines how much fallback work is allowed before we have a beautiful demo.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-pip-runtime" value="doc-pip-first" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Document PiP first</div>
+            <p>Build the feature around arbitrary HTML PiP. Fastest path to the desired experience, with unsupported-browser messaging for gaps.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-pip-runtime" value="doc-pip-fallback">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Document PiP plus canvas/video fallback</div>
+            <p>More robust across Firefox/Zen if Document PiP is missing, but adds a second renderer and weaker accessibility.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-pip-runtime" value="fallback-only">
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Classic video PiP fallback first</div>
+            <p>Proves always-on-top behavior with broader video PiP support, but delays the actual desired interface.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-pip-runtime-notes">Notes</label>
+        <input type="text" id="q-pip-runtime-notes" placeholder="Locked: Document PiP first">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q2</div>
+        <div class="q-title">Which browser should define the first success bar?</div>
+      </div>
+      <p>This blocks packaging and QA. The existing project is Firefox/Zen-shaped, while Document PiP is most mature in Chromium.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-target-browser" value="zen-first" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Zen/Firefox first</div>
+            <p>Best match for the current user and add-on history. Higher technical uncertainty around Document PiP support.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-target-browser" value="chromium-first">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Chromium first</div>
+            <p>Fastest way to prove Document PiP. Risks building a polished demo before the user's actual browser is supported.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-target-browser" value="dual">
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Dual from day one</div>
+            <p>Most release-ready, but slower and more likely to bury product learning under compatibility plumbing.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-target-browser-notes">Notes</label>
+        <input type="text" id="q-target-browser-notes" placeholder="Locked: Zen/Firefox first">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q3</div>
+        <div class="q-title">What release posture is acceptable?</div>
+      </div>
+      <p>This blocks store listing work. Technical success does not automatically mean public release is wise.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-release-posture" value="private-spike" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Personal/private spike first</div>
+            <p>Build and use locally while gathering terms/store evidence. Lowest risk, best for learning.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-release-posture" value="store-after-review">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Store release after policy review</div>
+            <p>Proceed if implementation is local-only, privacy-preserving, non-branded, and reviewer-friendly.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-release-posture" value="outreach-first">
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Ask Plex or rights holder first</div>
+            <p>Highest confidence for public release, but slower and may surface a clear no.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-release-posture-notes">Notes</label>
+        <input type="text" id="q-release-posture-notes" placeholder="Locked: personal/private spike first">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q4</div>
+        <div class="q-title">Where should the user open PiP from?</div>
+      </div>
+      <p>This blocks the user-activation strategy and decides whether Plex-page UI is required.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-entry-surface" value="injected-control" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Injected Plex-page control</div>
+            <p>Most reliable for transient activation. Add a compact lyrics/PiP control near the Plex lyrics area or companion toast.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-entry-surface" value="popup-focus">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Popup focuses Plex and prompts click</div>
+            <p>Cleaner extension popup flow, but likely still needs an in-page click to satisfy PiP activation.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-entry-surface" value="hybrid">
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Hybrid</div>
+            <p>Popup primary action focuses Plex and reveals the injected in-page "Open PiP" chip. Best UX if activation cannot transfer.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-entry-surface-notes">Notes</label>
+        <input type="text" id="q-entry-surface-notes" placeholder="Locked: injected Plex-page control">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q5</div>
+        <div class="q-title">Which visual mode is the default?</div>
+      </div>
+      <p>This blocks the final PiP renderer hierarchy and screenshot assets.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-visual-mode" value="lyric-stage">
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Lyric Stage</div>
+            <p>Large active line, cinematic context, track metadata, and progress. Highest "wow" factor and best side-screen fit.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-visual-mode" value="caption-bar">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Caption Bar</div>
+            <p>Small always-on-top bar with current and next line. Excellent for work mode, less delightful as the default.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-visual-mode" value="karaoke-desk" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Karaoke Desk</div>
+            <p>Portrait phone-shaped lyric display with a visible slice of the song, active-line emphasis, familiar karaoke scrolling, and minimal controls.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-visual-mode-notes">Notes</label>
+        <input type="text" id="q-visual-mode-notes" placeholder="Locked: portrait phone-shaped panel, active line marches then scrolls">
+      </div>
+    </div>
+
+    <div class="question">
+      <div class="question-head">
+        <div class="q-badge">Q6</div>
+        <div class="q-title">How should the feature handle Plex branding?</div>
+      </div>
+      <p>This blocks public naming, icon, screenshots, and store submission copy.</p>
+      <div class="q-options">
+        <label class="q-opt-radio">
+          <input type="radio" name="q-branding" value="plex-native-no-logo" checked>
+          <div class="q-opt-body">
+            <div class="q-opt-label">A - Plex-adjacent, no official marks</div>
+            <p>Use dark/gold visual cues and clear unofficial naming, but no Plex logos or claims of endorsement.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-branding" value="neutral-companion">
+          <div class="q-opt-body">
+            <div class="q-opt-label">B - Neutral companion identity</div>
+            <p>Less trademark risk, but weaker connection to the Plex user's mental model.</p>
+          </div>
+        </label>
+        <label class="q-opt-radio">
+          <input type="radio" name="q-branding" value="explicit-unofficial">
+          <div class="q-opt-body">
+            <div class="q-opt-label">C - Explicit unofficial Plex Web helper</div>
+            <p>More discoverable, but needs careful naming and store metadata review.</p>
+          </div>
+        </label>
+      </div>
+      <div class="q-notes">
+        <label for="q-branding-notes">Notes</label>
+        <input type="text" id="q-branding-notes" placeholder="Locked: Plex-adjacent visual language, no official marks">
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-decisions">Notes - Key Decisions</label>
+      <textarea id="notes-decisions" placeholder="Lock Q-card answers here before implementation phases begin..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="mockups">Mockups</h2>
+    <p>Design feedback pivot: the earlier mockups had too much extra surface area. The selected direction is a portrait Karaoke Desk: a phone-shaped lyrics viewport with about a quarter of the lyric sheet visible, active-line emphasis, standard karaoke scrolling, user-scrollable plain lyrics, and a small on-color close button.</p>
+
+    <div class="note"><strong>Selected direction:</strong> portrait Karaoke Desk. Keep album art, large metadata panels, source chips, and big progress rails out of the first PiP spike. A narrow header progress hairline is acceptable because it supports playback orientation without turning the PiP into a dashboard.</div>
+
+    <div class="col-card">
+      <h3>Final Direction - Portrait Karaoke Desk</h3>
+      <svg viewBox="0 0 760 560" role="img" aria-label="Portrait phone-shaped lyrics Picture-in-Picture mockup" style="width:100%;height:auto;border-radius:8px;background:#07090d">
+        <defs>
+          <linearGradient id="phoneEdge" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f3ce6d" />
+            <stop offset="0.52" stop-color="#e5a00d" />
+            <stop offset="1" stop-color="#48c6a0" />
+          </linearGradient>
+          <linearGradient id="screenFadeTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0b0f16" />
+            <stop offset="1" stop-color="#0b0f16" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="screenFadeBottom" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0b0f16" stop-opacity="0" />
+            <stop offset="1" stop-color="#0b0f16" />
+          </linearGradient>
+          <filter id="portraitShadow">
+            <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#000000" flood-opacity="0.52" />
+          </filter>
+        </defs>
+        <rect x="0" y="0" width="760" height="560" fill="#07090d" />
+        <text x="72" y="78" fill="#f6f2e8" font-family="Arial, sans-serif" font-size="30" font-weight="900">Portrait Karaoke Desk</text>
+        <text x="72" y="112" fill="#9ba5b4" font-family="Arial, sans-serif" font-size="16">Phone-shaped PiP. Lyrics first. One close button.</text>
+        <rect x="96" y="156" width="208" height="8" rx="4" fill="#2d3543" />
+        <rect x="96" y="156" width="116" height="8" rx="4" fill="#e5a00d" />
+        <text x="96" y="198" fill="#8e99aa" font-family="Arial, sans-serif" font-size="14">The active line walks down early.</text>
+        <path d="M176 230 L176 318" stroke="#e5a00d" stroke-width="4" stroke-linecap="round" />
+        <path d="M176 318 L164 304 M176 318 L188 304" stroke="#e5a00d" stroke-width="4" stroke-linecap="round" />
+        <text x="96" y="366" fill="#8e99aa" font-family="Arial, sans-serif" font-size="14">Then the page scrolls under it.</text>
+        <path d="M176 404 L176 342" stroke="#48c6a0" stroke-width="4" stroke-linecap="round" />
+        <path d="M176 342 L164 356 M176 342 L188 356" stroke="#48c6a0" stroke-width="4" stroke-linecap="round" />
+
+        <g filter="url(#portraitShadow)">
+          <rect x="420" y="38" width="244" height="484" rx="38" fill="url(#phoneEdge)" />
+          <rect x="427" y="45" width="230" height="470" rx="32" fill="#0b0f16" />
+          <rect x="456" y="72" width="124" height="18" rx="9" fill="#171d27" />
+          <circle cx="614" cy="77" r="15" fill="#e5a00d" stroke="#ffe296" />
+          <text x="609" y="82" fill="#090c10" font-family="Arial, sans-serif" font-size="13" font-weight="900">X</text>
+          <text x="454" y="118" fill="#9be7c7" font-family="Arial, sans-serif" font-size="12" font-weight="900">Timed lyrics from Plex</text>
+          <text x="454" y="164" fill="#6f7b8e" font-family="Arial, sans-serif" font-size="20" font-weight="800">previous line fades</text>
+          <text x="454" y="218" fill="#8995a7" font-family="Arial, sans-serif" font-size="20" font-weight="800">another line above</text>
+          <rect x="450" y="246" width="4" height="74" rx="2" fill="#e5a00d" />
+          <text x="466" y="274" fill="#fffaf0" font-family="Arial, sans-serif" font-size="26" font-weight="900">current line</text>
+          <text x="466" y="304" fill="#fffaf0" font-family="Arial, sans-serif" font-size="26" font-weight="900">owns focus</text>
+          <text x="454" y="358" fill="#b4bdca" font-family="Arial, sans-serif" font-size="20" font-weight="800">next line waits</text>
+          <text x="454" y="412" fill="#7f8a9b" font-family="Arial, sans-serif" font-size="20" font-weight="800">lower context line</text>
+          <rect x="427" y="45" width="230" height="82" rx="32" fill="url(#screenFadeTop)" />
+          <rect x="427" y="426" width="230" height="89" rx="32" fill="url(#screenFadeBottom)" />
+        </g>
+      </svg>
+    </div>
+
+    <table class="svc-table">
+      <thead><tr><th>State</th><th>Behavior</th><th>Spike Requirement</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Timed lyrics</td>
+          <td>Highlight Plex's selected line, scroll toward the middle, and clamp near the end so the active line can march down.</td>
+          <td>Mirror the <code>AudioVideoLyrics-isLineSelected-*</code> class; do not calculate timing independently.</td>
+        </tr>
+        <tr>
+          <td class="svc">Plain lyrics</td>
+          <td>Show the full sheet in the same portrait surface and let the user scroll manually.</td>
+          <td>Preserve manual scroll when there is no active line.</td>
+        </tr>
+        <tr>
+          <td class="svc">No lyrics visible</td>
+          <td>Show a quiet waiting state inside the PiP and keep watching Plex.</td>
+          <td>Never fetch another source or store lyric text.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note"><strong>Design checkpoint:</strong> the first implementation uses a 280x500 default PiP request, close to a portrait phone panel. Browsers may clamp the size, and user resizing is acceptable as long as the layout keeps the portrait lyric-reading character.</div>
+
+    <div class="section-notes">
+      <label for="notes-mockups">Notes - Mockups</label>
+      <textarea id="notes-mockups" placeholder="Visual feedback, missing states, screenshot needs, or prototype notes..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="architecture">Architecture</h2>
+    <p>The current extension already has a good spine: popup, MV3 background/session state, content script, Plex page observation, and toast. PiP should extend that spine rather than replacing it.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Module</th><th>Responsibility</th><th>Implementation Notes</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc"><code>pip-page.js</code> lyrics extractor</td>
+          <td>Find Plex lyrics container, read visible lines, identify active line, detect plain/timed/no-lyrics states.</td>
+          <td>Runs in the page realm so it can share origin with the Document PiP window. Use structured DOM observation. When PiP is open, throttle-click Plex's lyrics button if the source lyrics panel is closed. Never send lyric text to background.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>pip-page.js</code> PiP controller</td>
+          <td>Own the PiP window because Document PiP is tied to the page context.</td>
+          <td>Open from trusted in-page click. Render and update DOM directly inside the PiP window. Close when source tab unloads. Do not access the PiP window from isolated extension code in Zen/Firefox.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>pip-page.js</code> PiP playback bridge</td>
+          <td>Expose previous, play/pause, next, compact now-playing, and progress inside the PiP without adding album art or metadata chrome.</td>
+          <td>Use page-world closures to click Plex's own visible player buttons. Read Media Session metadata and media-element time locally. Keep controls icon-only, keyboard-focusable, and local to the current Plex page.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>pip-page.js</code> PiP viewport memory</td>
+          <td>Restore the last user-sized PiP viewport where the browser permits it.</td>
+          <td>Persist only <code>{width,height}</code> as a UI preference. Set <code>preferInitialWindowPlacement: false</code> so the browser can remember placement. Position cannot be set by the page.</td>
+        </tr>
+        <tr>
+          <td class="svc">Injected in-page control</td>
+          <td>Expose "Lyrics PiP" where activation works and where the user understands the action.</td>
+          <td>Keep tiny, Plex-adjacent, and opt-in. The current spike renders a fixed chip near the Plex player controls.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>background.js</code></td>
+          <td>Track feature availability and session state, but not lyric bodies.</td>
+          <td>Store booleans/status only: PiP supported, PiP open, source tab ID, last event. Do not persist lyrics.</td>
+        </tr>
+        <tr>
+          <td class="svc"><code>popup.js</code></td>
+          <td>Show PiP availability and guide the user to the activation surface.</td>
+          <td>If direct open fails or is impossible, primary action focuses Plex and reveals the in-page control.</td>
+        </tr>
+        <tr>
+          <td class="svc">Optional renderer split</td>
+          <td>Separate lyric snapshot creation from rendering.</td>
+          <td>Use a small internal data shape: <code>{ track, artist, mode, lines, activeIndex, updatedAt }</code>. Keep it in memory.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Data Boundary</h3>
+    <table class="svc-table">
+      <thead><tr><th>Data</th><th>Allowed</th><th>Not Allowed</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc">Lyric text</td>
+          <td>In-memory in the Plex tab and PiP window.</td>
+          <td>Extension storage, sync storage, logs, telemetry, network, clipboard unless user explicitly copies from Plex itself.</td>
+        </tr>
+        <tr>
+          <td class="svc">Track metadata</td>
+          <td>In-memory display and possibly last-event text like "Lyrics visible".</td>
+          <td>Analytics, crash reports, external services, or persistent listening history.</td>
+        </tr>
+        <tr>
+          <td class="svc">User preferences</td>
+          <td>Density, font size, reduced motion, last PiP dimensions if browser does not remember.</td>
+          <td>Anything that identifies the Plex server, library contents, or user account.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-architecture">Notes - Architecture</label>
+      <textarea id="notes-architecture" placeholder="Module boundaries, data shape, privacy constraints, or fallback architecture..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="steps">Step Plan</h2>
+    <p>The order matters: prove browser/API viability, then prove Plex lyric state extraction, then make it beautiful, then decide whether public release is worth the legal/store review effort.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-title">Phase 1 - Browser and activation spike</div>
+        <p>In a temporary local build, inject a small button into Plex Web and call <code>window.documentPictureInPicture.requestWindow()</code> from the trusted click. Test Zen, Firefox, Chrome, and Edge. Record exact failures and whether classic video PiP is viable. Status: Zen temporary testing proves the page-world <code>pip-page.js</code> path opens and syncs well. Chrome/Edge and fallback behavior remain release-compatibility tests.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 2 - Plex lyrics DOM mapping</div>
+        <p>Open real Plex Music tracks with timed lyrics, plain lyrics, and no lyrics. Capture selectors, active-line state, mutation patterns, track-change behavior, and whether hidden lyrics remain in the DOM. Update this plan with the findings before building the renderer. Status: timed LyricFind lyrics are mapped; plain/no-lyrics and track-change cases remain.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 3 - In-memory lyric snapshot model</div>
+        <p>Create a page-local snapshot model for lines, active index, availability state, and timestamps. Add guards so lyric bodies never enter persistent extension storage. Status: first spike snapshots line text, active line, blank rows, and timed/plain/empty mode in the Plex page/PiP runtime only; track title/artist and progress are read only from browser Media Session/media-element state and are not persisted.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 4 - PiP renderer prototype</div>
+        <p>Build the portrait Karaoke Desk renderer in Document PiP with fake lyrics first, then connect it to the snapshot model. Include plain lyrics and no-lyrics states from the start. Status: renderer is connected directly to the Plex snapshot, keeps lyric nodes stable between active-line changes, auto-reopens Plex's source lyrics panel while PiP is open, and uses fake copy only for empty/waiting states.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 5 - Control surface integration</div>
+        <p>Add the in-Plex "Open Lyrics PiP" chip and popup guidance. Keep the control opt-in, unobtrusive, and state-aware. Verify it does not fight the existing keep-lyrics-open session model. Status: in-page chip exists; PiP header now includes previous/play-pause/next controls, a compact now-playing readout, and a progress bar that bridge/read from Plex's own page state.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 6 - Accessibility and performance polish</div>
+        <p>Add density modes, font sizing, reduced motion, keyboard focus, high contrast, resize handling, multi-tab behavior, and observer throttling. Stress test long songs and rapid track changes. Status: first polish pass slows custom scroll animation, reserves active-line marker space, patches active-line classes instead of rebuilding the full lyric DOM, keeps header controls keyboard-focusable, prevents lyrics from scrolling behind the header, and saves/restores the last PiP viewport size.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 7 - Compliance preflight</div>
+        <p>Audit permissions, data handling, screenshots, store listing copy, naming, trademark posture, privacy policy, and reviewer instructions. Decide Q3 before preparing a public submission.</p>
+      </div>
+      <div class="step">
+        <div class="step-title">Phase 8 - Release candidate or private-only package</div>
+        <p>Package for the chosen browser target. If public release is approved, prepare fake-lyrics screenshots and exact caveat copy. If private-only, document temporary-load and rollback procedures.</p>
+      </div>
+    </div>
+
+    <div class="section-notes">
+      <label for="notes-steps">Notes - Step Plan</label>
+      <textarea id="notes-steps" placeholder="Phase notes, accepted gates, sequencing changes, or implementation results..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="qa">QA &amp; Release</h2>
+    <p>QA should exercise three things at once: PiP lifecycle, lyric state fidelity, and trust. The feature should never surprise the user by saving lyrics, fetching from elsewhere, or keeping a stale line alive after Plex changes tracks.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Scenario</th><th>Expected Result</th></tr></thead>
+      <tbody>
+        <tr><td>Open PiP from injected control</td><td>PiP opens only after a user click, renders fake/provided lyric state, and keeps Plex playback in the source tab.</td></tr>
+        <tr><td>Timed lyrics available</td><td>Current Plex line is highlighted in PiP within an acceptable delay, with previous and next lines readable.</td></tr>
+        <tr><td>Timed lyric movement</td><td>Active-line changes feel smooth, with no flashing or whole-list redraw; scroll follows Plex's selected line at a calm karaoke pace.</td></tr>
+        <tr><td>Timed lyrics toggle safety</td><td>PiP auto-open never clicks or toggles Plex's <code>Timed Lyrics</code> button during instrumental sections, no-lyrics gaps, or active-line delays.</td></tr>
+        <tr><td>PiP playback controls</td><td>Previous, play/pause, and next buttons appear at the top of the PiP and trigger Plex's own player controls without desyncing lyrics.</td></tr>
+        <tr><td>Now-playing/progress readout</td><td>Title/artist appear when Plex exposes Media Session metadata; the progress bar advances from the page media element and degrades gracefully when duration is unavailable.</td></tr>
+        <tr><td>Header readability</td><td>Lyrics never scroll behind playback controls, status text, close button, or progress bar at narrow or resized PiP widths.</td></tr>
+        <tr><td>PiP size persistence</td><td>After the user resizes and closes PiP, the next open requests the saved viewport size. Position restoration is browser-managed and not set by extension code.</td></tr>
+        <tr><td>Plain lyrics only</td><td>PiP switches to plain reading mode and does not imply live sync.</td></tr>
+        <tr><td>No lyrics for track</td><td>PiP shows a calm availability state and keeps watching for the next track.</td></tr>
+        <tr><td>Track changes</td><td>Old lyric lines disappear quickly; Plex lyrics reopen automatically if the source panel closes, and new lyrics replace the old display without persisting history.</td></tr>
+        <tr><td>Manual close of Plex lyrics</td><td>When PiP is open, the PiP mode treats Plex lyrics as its required source panel and may reopen them. Closing PiP stops that behavior; the standalone companion session should still respect manual close.</td></tr>
+        <tr><td>Source tab closes or navigates</td><td>PiP closes or shows a source-lost state without keeping stale lyrics indefinitely.</td></tr>
+        <tr><td>Multiple Plex tabs</td><td>Targets audible or active tab consistently and identifies the source tab in status.</td></tr>
+        <tr><td>Unsupported browser</td><td>Popup and in-page chip explain that Lyrics PiP is not available; no broken buttons.</td></tr>
+        <tr><td>Store review package</td><td>Reviewer instructions include Plex Web setup, lyric availability caveats, no-data-transmission statement, and fake lyric screenshots.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Release Checklist</h3>
+    <table class="svc-table">
+      <thead><tr><th>Check</th><th>Status Before Public Release</th></tr></thead>
+      <tbody>
+        <tr><td>Permissions</td><td>Only Plex Web host permissions and necessary extension APIs.</td></tr>
+        <tr><td>Privacy policy</td><td>States local processing, no lyric storage, no analytics unless explicitly added later.</td></tr>
+        <tr><td>Source code</td><td>Reviewable, no obfuscation, no remote code.</td></tr>
+        <tr><td>Branding</td><td>Unofficial wording, no Plex logo, no confusing store metadata.</td></tr>
+        <tr><td>Screenshots</td><td>Use placeholder lyrics, not copyrighted lyric excerpts.</td></tr>
+        <tr><td>Legal/terms</td><td>Q3 resolved and documented. Consider direct Plex/LyricFind outreach if uncertainty remains high.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-qa">Notes - QA &amp; Release</label>
+      <textarea id="notes-qa" placeholder="QA results, release blockers, reviewer notes, or store submission findings..."></textarea>
+    </div>
+
+    <hr />
+
+    <h2 id="sources">Sources</h2>
+    <p>Research sources used for this plan. Recheck these before public release because browser support, store policy, and terms can change.</p>
+
+    <table class="svc-table">
+      <thead><tr><th>Source</th><th>Used For</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="svc"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Document_Picture-in-Picture_API">MDN - Document Picture-in-Picture API</a></td>
+          <td>Arbitrary HTML PiP model, always-on-top behavior, limited availability, same-session limitations, and page inability to set PiP window position.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://developer.mozilla.org/en-US/docs/Web/API/DocumentPictureInPicture/requestWindow">MDN - requestWindow()</a></td>
+          <td>User activation requirement, top-level window constraints, size options, previous-placement behavior, and exception behavior.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://developer.chrome.com/docs/web-platform/document-picture-in-picture">Chrome Developers - Picture-in-Picture for any Element</a></td>
+          <td>Chrome/Edge/Firefox/Safari support summary and Document PiP use cases.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Picture-in-Picture_API">MDN - classic Picture-in-Picture API</a></td>
+          <td>Video-only PiP fallback and controls limitations.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://support.plex.tv/articles/215238778-automatic-lyrics-from-lyricfind/">Plex Support - Automatic Lyrics from LyricFind</a></td>
+          <td>Plex Pass requirement, timed/plain lyrics, Plex Web support, geographic availability caveat.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://www.plex.tv/about/privacy-legal/plex-terms-of-service/">Plex Terms of Service</a></td>
+          <td>Interfacing Software, content rights, modification restrictions, and public release risk analysis.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://www.apple.com/apple-music/">Apple Music product page</a></td>
+          <td>Market expectation for real-time lyrics, translations/pronunciations, duet view, and Sing positioning.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://support.spotify.com/us/article/lyrics/">Spotify Support - View lyrics</a></td>
+          <td>Mainstream lyric availability expectations and rights/device variability.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://extensionworkshop.com/documentation/publish/add-on-policies/">Firefox Add-on Policies</a></td>
+          <td>No-surprises, permissions, reviewable code, data transmission, and AMO release constraints.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/">Chrome Web Store Program Policies</a></td>
+          <td>Trust/transparency, privacy, responsible marketing, quality, and technical requirements.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/quality-guidelines-faq">Chrome Extension Quality Guidelines FAQ</a></td>
+          <td>Single-purpose policy and injected toolbar/UI caution.</td>
+        </tr>
+        <tr>
+          <td class="svc"><a href="https://developer.chrome.com/docs/webstore/program-policies/impersonation-and-intellectual-property">Chrome Impersonation &amp; IP Policy</a></td>
+          <td>Unaffiliated product naming, IP rights, and endorsement risk.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-notes">
+      <label for="notes-sources">Notes - Sources</label>
+      <textarea id="notes-sources" placeholder="Sources to recheck, source gaps, or new policy references..."></textarea>
+    </div>
+
+    <div id="wiki-copy-bar"></div>
+  </div>
+</div>
+
+<script src="/shared/wiki.js"></script>
+<script src="/shared/nav.js"></script>
+<script>
+  initWikiPage({
+    qLabels: {
+      'q-pip-runtime': {
+        'doc-pip-first': 'A - Document PiP first',
+        'doc-pip-fallback': 'B - Document PiP plus canvas/video fallback',
+        'fallback-only': 'C - Classic video PiP fallback first',
+      },
+      'q-target-browser': {
+        'zen-first': 'A - Zen/Firefox first',
+        'chromium-first': 'B - Chromium first',
+        'dual': 'C - Dual from day one',
+      },
+      'q-release-posture': {
+        'private-spike': 'A - Personal/private spike first',
+        'store-after-review': 'B - Store release after policy review',
+        'outreach-first': 'C - Ask Plex or rights holder first',
+      },
+      'q-entry-surface': {
+        'injected-control': 'A - Injected Plex-page control',
+        'popup-focus': 'B - Popup focuses Plex and prompts click',
+        'hybrid': 'C - Hybrid',
+      },
+      'q-visual-mode': {
+        'lyric-stage': 'A - Lyric Stage',
+        'caption-bar': 'B - Caption Bar',
+        'karaoke-desk': 'C - Karaoke Desk',
+      },
+      'q-branding': {
+        'plex-native-no-logo': 'A - Plex-adjacent, no official marks',
+        'neutral-companion': 'B - Neutral companion identity',
+        'explicit-unofficial': 'C - Explicit unofficial Plex Web helper',
+      },
+    },
+    sectionNotes: [
+      { id: 'notes-scope', label: 'Scope' },
+      { id: 'notes-research', label: 'Research Snapshot' },
+      { id: 'notes-live-spike', label: 'Live Spike Findings' },
+      { id: 'notes-market', label: 'Market Research' },
+      { id: 'notes-compatibility', label: 'Browser Compatibility' },
+      { id: 'notes-policy', label: 'Terms & Store Review' },
+      { id: 'notes-design', label: 'Design Direction' },
+      { id: 'notes-decisions', label: 'Key Decisions' },
+      { id: 'notes-mockups', label: 'Mockups' },
+      { id: 'notes-architecture', label: 'Architecture' },
+      { id: 'notes-steps', label: 'Step Plan' },
+      { id: 'notes-qa', label: 'QA & Release' },
+      { id: 'notes-sources', label: 'Sources' },
+    ],
+  });
+</script>
+</body>
+</html>

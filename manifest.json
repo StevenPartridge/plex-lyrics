@@ -23,6 +23,14 @@
         "*://*/web/*"
       ],
       "js": ["content.js"]
+    },
+    {
+      "matches": [
+        "*://*.plex.tv/*",
+        "*://*/web/*"
+      ],
+      "js": ["pip-page.js"],
+      "world": "MAIN"
     }
   ],
   "action": {

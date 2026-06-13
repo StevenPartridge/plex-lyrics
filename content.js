@@ -1,8 +1,8 @@
 const TOAST_ID = 'plex-lyrics-companion-toast';
 const LYRICS_BUTTON_SELECTORS = [
   '[data-testid="lyricsButton"]',
-  'button[aria-label*="Lyrics" i]',
-  '[role="button"][aria-label*="Lyrics" i]',
+  'button[aria-label="Lyrics" i]',
+  '[role="button"][aria-label="Lyrics" i]',
 ];
 const BUTTON_MISSING_GRACE_MS = 6000;
 
@@ -44,12 +44,22 @@ function isLikelyPlexPage() {
 
 function findLyricsButton() {
   for (const selector of LYRICS_BUTTON_SELECTORS) {
-    const button = document.querySelector(selector);
+    const button = Array.from(document.querySelectorAll(selector)).find(isMainLyricsButton);
     if (button) {
       return button;
     }
   }
   return null;
+}
+
+function isMainLyricsButton(element) {
+  if (!element) {
+    return false;
+  }
+
+  const testId = element.getAttribute('data-testid') || '';
+  const ariaLabel = (element.getAttribute('aria-label') || '').trim().toLowerCase();
+  return testId === 'lyricsButton' || ariaLabel === 'lyrics';
 }
 
 function isLyricsVisible(button = findLyricsButton()) {

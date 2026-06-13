@@ -35,13 +35,14 @@
       data-fs-path="/Users/steven/dev/plex-lyrics/wiki/index.html"
       data-tags="plex,lyrics,firefox,extension,webextension,automation"
       data-created="2026-06-01"
-      data-updated="2026-06-06"
+      data-updated="2026-06-13"
       data-state="under-construction">
     </div>
 
     <details class="changelog">
       <summary>Changelog</summary>
       <ul>
+        <li><time>2026-06-13</time> - Add Lyrics PiP research and build task plan</li>
         <li><time>2026-06-06</time> - Polish Open Plex behavior and document temporary-load test results</li>
         <li><time>2026-06-06</time> - Record Zen profile rollback after local MV3 package crashed Zen</li>
         <li><time>2026-06-06</time> - Add Zen profile test package path and rollback note</li>
@@ -215,6 +216,10 @@
 
     <div class="two-col">
       <div class="col-card">
+        <h3><a href="/projects/plex-lyrics/task-plan-lyrics-pip.html">Lyrics PiP Research &amp; Build Plan</a></h3>
+        <p>Research-backed task plan for mirroring Plex-provided lyrics into a beautiful Picture-in-Picture window, including market research, browser compatibility, release risk, and design direction.</p>
+      </div>
+      <div class="col-card">
         <h3><a href="/projects/plex-lyrics/task-plan-interface-overhaul.html">Lyrics Companion Overhaul</a></h3>
         <p>Product and design task plan for replacing the timer-first popup with a state-based companion that keeps lyrics open, respects manual close, and makes paused/canceled state visible.</p>
       </div>
@@ -268,6 +273,7 @@
     <table class="svc-table">
       <thead><tr><th>Date</th><th>Change</th><th>Notes</th></tr></thead>
       <tbody>
+        <tr><td>2026-06-13</td><td>Lyrics PiP task plan created</td><td>Captured market research, browser compatibility, Plex/store policy risks, design direction, architecture, and step plan for a Picture-in-Picture lyrics companion.</td></tr>
         <tr><td>2026-06-06</td><td>Temporary Zen load validated</td><td>Steven confirmed the temporary add-on works and looks good. Polish pass changed the ambiguous Find Plex control into concrete Open/Focus Plex behavior.</td></tr>
         <tr><td>2026-06-06</td><td>Zen profile package rolled back</td><td>Directly copying the local MV3 XPI into the active Zen profile caused crashes, so the signed v1.2 XPI was restored. Next test should use temporary loading.</td></tr>
         <tr><td>2026-06-06</td><td>Zen profile test package installed</td><td>Packaged <code>build/plex-lyrics-companion-2.0.xpi</code>, copied it over the existing Zen profile add-on id, and saved a 1.2 rollback package.</td></tr>
